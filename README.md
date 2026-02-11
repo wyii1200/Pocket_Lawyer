@@ -11,6 +11,7 @@ Many users face difficulty understanding legal documents or generating legal let
 - **Goal 9:** Industry, Innovation, and Infrastructure – leveraging AI and technology to improve legal services.
 
 
+
 ## Key Features
 - **Home Dashboard:** Access Analyze Document, Chat, and Generate Letter functionalities.  
 - **Document Upload:** Supports PDF and image files for analysis.  
@@ -19,12 +20,14 @@ Many users face difficulty understanding legal documents or generating legal let
 - **Results View:** Displays generated documents and analysis results clearly.
 
 
+
 ## System Flow / Implementation Details
 1. User Interaction: Users access the dashboard, upload documents, or initiate chat.
 2. Backend Processing: Uploaded documents are sent to Firebase Functions; AI models process data.
 3. AI Analysis & Chat: Gemini or other AI services provide document insights and chat responses
 4. Document Generation: Users fill form-based inputs; generated letters are stored and displayed
 5. Results View: Users can download or view documents with analysis summaries.
+
 
 
 ## How to Run
@@ -64,7 +67,6 @@ Many users face difficulty understanding legal documents or generating legal let
 4. Run Flutter App
    ```bash
     flutter run
-
 
 ### Backend (Firebase Emulator)
 
