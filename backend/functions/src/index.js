@@ -4,6 +4,8 @@
  * such as document upload, contract analysis, legal chat, and letter generation.
  */
 
+
+
 const {db} = require("./config/firebase");
 const functions = require("firebase-functions");
 
