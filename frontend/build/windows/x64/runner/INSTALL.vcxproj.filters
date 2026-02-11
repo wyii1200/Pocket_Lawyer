@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\kwekc\OneDrive\Documents\pocket_lawyer\Pocket_Lawyer\frontend\build\windows\x64\CMakeFiles\d21282d472655e90be7928fbff8a0276\INSTALL_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{AC81814D-A1ED-3DC8-B899-D841D6A232A1}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
