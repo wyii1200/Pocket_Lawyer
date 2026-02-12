@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+
+
 
 class Message {
   final String role;
@@ -17,6 +20,45 @@ class LegalChatPage extends StatefulWidget {
 }
 
 class _LegalChatPageState extends State<LegalChatPage> {
+  
+  // Inside _LegalChatPageState
+  Future<void> _sendMessage(String text) async {
+    if (text.trim().isEmpty) return;
+
+    // 1. Add User Message to UI
+    setState(() {
+      _messages.add(Message(role: 'user', content: text));
+      _inputController.clear();
+      _isTyping = true;
+    });
+
+    try {
+      // 2. Call your JS Backend via Firebase Emulator
+      // Ensure your main.dart has: FirebaseFunctions.instance.useFunctionsEmulator('10.0.2.2', 5001);
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('legalChat')
+          .call({'message': text});
+
+      // 3. Add AI Response to UI
+      setState(() {
+        _isTyping = false;
+        _messages.add(Message(
+          role: 'ai',
+          content: result.data['reply'] ?? 'I am sorry, I could not process that.',
+          legalRef: 'Referenced from Malaysian Laws', // You can also pass this from JS
+        ));
+      });
+    } catch (e) {
+      setState(() {
+        _isTyping = false;
+        _messages.add(Message(
+          role: 'ai',
+          content: 'Error connecting to legal assistant: $e',
+        ));
+      });
+    }
+  }
+  
   final TextEditingController _inputController = TextEditingController();
   final List<Message> _messages = [
     Message(
@@ -33,7 +75,8 @@ class _LegalChatPageState extends State<LegalChatPage> {
     "Can a contract be terminated early?"
   ];
 
-  void _sendMessage(String text) {
+  //demo only
+  /*void _sendMessage(String text) {
     if (text.trim().isEmpty) return;
 
     setState(() {
@@ -53,7 +96,7 @@ class _LegalChatPageState extends State<LegalChatPage> {
         ));
       });
     });
-  }
+  }*/
 
   @override
   Widget build(BuildContext context) {

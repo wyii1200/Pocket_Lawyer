@@ -1,5 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+
+String _analysisResult = ""; // Variable to store the JS response
+
+
 
 class DocumentAnalysisPage extends StatefulWidget {
   const DocumentAnalysisPage({super.key});
@@ -9,6 +20,91 @@ class DocumentAnalysisPage extends StatefulWidget {
 }
 
 class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
+  
+  Future<void> _sendFileToBackend(File file) async {
+    setState(() => _currentState = 'loading');
+
+    try {
+      // Convert file to base64
+      final bytes = await file.readAsBytes();
+      final base64Data = base64Encode(bytes);
+
+      // Replace with your deployed Cloud Function URL
+      final uri = Uri.parse('http://10.0.2.2:5001/pocketlawyer-ai-2025/us-central1/analyzeContract');
+
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'fileData': base64Data,
+          'fileName': file.path.split('/').last,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _analysisResult = data['analysis'] ?? "No data";
+          _currentState = 'result';
+        });
+      } else {
+        throw Exception('Server Error: ${response.statusCode}');
+      }
+    } catch (e) {
+      setState(() => _currentState = 'upload');
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Backend Error: $e")));
+    }
+  }
+
+    Future<void> _pickPDFAndAnalyze() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf'],
+    );
+
+    if (result != null && result.files.single.path != null) {
+      File file = File(result.files.single.path!);
+      await _sendFileToBackend(file);
+    }
+  }
+
+  Future<void> _scanCameraAndAnalyze() async {
+      final picker = ImagePicker();
+      XFile? image = await picker.pickImage(source: ImageSource.camera);
+
+      if (image != null) {
+        File file = File(image.path);
+        await _sendFileToBackend(file);
+      }
+    }
+
+
+  // Inside _DocumentAnalysisPageState
+  Future<void> _runRealAnalysis() async {
+
+
+    setState(() => _currentState = 'loading');
+    try {
+      // Calling the JS export "analyzeContract"
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('analyzeContract') 
+          .call({'documentId': 'your_actual_doc_id'});
+
+      setState(() {
+        _analysisResult = result.data['analysis'] ?? "No data";
+        _currentState = 'result';
+      });
+    } catch (e) {
+      setState(() => _currentState = 'upload');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Backend Error: $e")),
+      );
+    }
+  }
+
   String _currentState = 'upload'; // upload, loading, result
   int? _expandedIndex;
 
@@ -85,7 +181,7 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: _startAnalysis,
+                onPressed: _pickPDFAndAnalyze, // 🔥 CHANGED FROM _startAnalysis
                 icon: const Icon(LucideIcons.file),
                 label: const Text('Upload PDF'),
                 style: ElevatedButton.styleFrom(
@@ -100,7 +196,7 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
             const SizedBox(width: 12),
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: _startAnalysis,
+                onPressed: _scanCameraAndAnalyze, // 🔥 CHANGED FROM _startAnalysis
                 icon: const Icon(LucideIcons.camera),
                 label: const Text('Camera Scan'),
                 style: OutlinedButton.styleFrom(
@@ -154,6 +250,11 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  //Analyze the risk level based on _analysisResult
+                 /* _analysisResult.isEmpty
+                      ? "No analysis result."
+                      : _analysisResult,
+                  style: const TextStyle(fontFamily: 'Poppins'),*/
                   Text(
                     'Risk Level',
                     style: TextStyle(

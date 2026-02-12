@@ -12,30 +12,29 @@ const { verifyAuth } = require("../middleware/auth");
 const { model } = require("../config/gemini");
 const pdfParse = require("pdf-parse");
 
-exports.uploadDocument = functions.https.onRequest(async (req, res) => {
+exports.uploadDocument = onCall(async (request) => {
+  if (!request.auth) throw new HttpsError("unauthenticated", "Auth required.");
+
   try {
-    const user = await verifyAuth(req);
-
-    const file = req.body.file; // assume base64 for simplicity
-    const buffer = Buffer.from(file, "base64");
-
+    const { fileBase64 } = request.data; 
+    const buffer = Buffer.from(fileBase64, "base64");
     const documentId = db.collection("documents").doc().id;
 
-    const filePath = `documents/${user.uid}/${documentId}.pdf`;
+    const filePath = `documents/${request.auth.uid}/${documentId}.pdf`;
     const fileRef = storage.bucket().file(filePath);
 
-    await fileRef.save(buffer);
+    await fileRef.save(buffer, { contentType: 'application/pdf' });
 
     await db.collection("documents").doc(documentId).set({
-      userId: user.uid,
+      userId: request.auth.uid,
       status: "processing",
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       filePath,
     });
 
-    res.json({documentId, status: "processing"});
+    return { documentId, status: "processing" };
   } catch (error) {
-    res.status(500).json({error: error.message});
+    throw new HttpsError("internal", error.message);
   }
-});
+}); 
 

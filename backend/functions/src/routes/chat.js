@@ -11,45 +11,36 @@ const { verifyAuth } = require("../middleware/auth");
 const { model } = require("../config/gemini");
 const pdfParse = require("pdf-parse");
 
-exports.legalChat = functions.https.onRequest(async (req, res) => {
+exports.legalChat = onCall(async (request) => {
+  // Check if user is logged in
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
+  }
+
   try {
-    const user = await verifyAuth(req);
-    const {message} = req.body;
+    const { message } = request.data; // Flutter sends data here
 
-    // 🔹 Simple RAG – fetch relevant law snippets
-    const lawsSnapshot = await db.collection("laws")
-      .limit(5)
-      .get();
-
+    const lawsSnapshot = await db.collection("laws").limit(5).get();
     let context = "";
     lawsSnapshot.forEach((doc) => {
       context += doc.data().content + "\n";
     });
 
-    const prompt = `
-    You are a Malaysian legal assistant.
-    Answer ONLY based on provided laws.
-    
-    Context:
-    ${context}
-    
-    Question:
-    ${message}
-    `;
+    const prompt = `You are a Malaysian legal assistant. Answer ONLY based on provided laws.\nContext:\n${context}\nQuestion:\n${message}`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const reply = response.text();
 
     await db.collection("chats").add({
-      userId: user.uid,
+      userId: request.auth.uid,
       message,
       reply,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    res.json({reply});
+    return { reply }; // Send directly back to Flutter
   } catch (error) {
-    res.status(500).json({error: error.message});
+    throw new HttpsError("internal", error.message);
   }
 });

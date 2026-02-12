@@ -4,41 +4,48 @@
  * using Google Generative AI, and stores the generated letters in Firestore.
  */
 
-const admin = require("firebase-admin");
+
 const functions = require("firebase-functions");
-const { db, storage } = require("../config/firebase");
-const { verifyAuth } = require("../middleware/auth");
-const { model } = require("../config/gemini");
-const pdfParse = require("pdf-parse");
+const admin = require("firebase-admin");
+admin.initializeApp();
+const { OpenAI } = require("openai"); // optional for AI
+
+const bucket = admin.storage().bucket();
+
+// Initialize OpenAI if using AI
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 exports.generateLetter = functions.https.onRequest(async (req, res) => {
   try {
-    const user = await verifyAuth(req);
-    const {templateId, userData} = req.body;
+    const { templateId, userData } = req.body;
 
-    const prompt = `
-    Generate a formal ${templateId} letter.
-    Use Malaysian legal tone.
-    
-    Details:
-    ${JSON.stringify(userData)}
-    `;
+    // 1️⃣ Fetch template from Storage
+    const file = bucket.file(`templates/${templateId}.txt`);
+    const templateContent = (await file.download())[0].toString("utf8");
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const letterText = response.text();
+    // 2️⃣ Replace placeholders
+    let letterText = templateContent;
+    for (const key in userData) {
+      const regex = new RegExp(`{{${key}}}`, "g");
+      letterText = letterText.replace(regex, userData[key]);
+    }
 
-    const docRef = db.collection("letters").doc();
+    // 3️⃣ Optional AI enhancement (RAG)
+    // For example, generate formal wording using OpenAI
+    // const aiResponse = await openai.chat.completions.create({
+    //   model: "gpt-4",
+    //   messages: [
+    //     { role: "system", content: "You are a professional legal letter writer." },
+    //     { role: "user", content: letterText }
+    //   ]
+    // });
+    // letterText = aiResponse.choices[0].message.content;
 
-    await docRef.set({
-      userId: user.uid,
-      templateId,
-      letterText,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    res.status(200).json({ letterText });
 
-    res.json({letterText});
-  } catch (error) {
-    res.status(500).json({error: error.message});
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
   }
 });
+
