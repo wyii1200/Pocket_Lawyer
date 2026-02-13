@@ -8,7 +8,7 @@ const admin = require("firebase-admin");
 const functions = require("firebase-functions");
 const { db, storage } = require("../config/firebase");
 const { verifyAuth } = require("../middleware/auth");
-const { model } = require("../config/gemini");
+const getModel = require("../config/gemini");
 const pdfParse = require("pdf-parse");
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
@@ -44,6 +44,7 @@ exports.analyzeContract = onCall(async (request) => {
     ${extractedText}
     `;
 
+    const model = getModel();
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();

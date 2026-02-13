@@ -6,14 +6,19 @@
 
 
 const functions = require("firebase-functions");
-const admin = require("firebase-admin");
-admin.initializeApp();
-const { OpenAI } = require("openai"); // optional for AI
+const { admin, storage } = require("../config/firebase");
 
-const bucket = admin.storage().bucket();
+let openai = null;
 
-// Initialize OpenAI if using AI
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const getOpenAI = () => {
+  if (!openai && process.env.OPENAI_API_KEY) {
+    const { OpenAI } = require("openai");
+    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return openai;
+};
+
+const bucket = storage.bucket();
 
 exports.generateLetter = functions.https.onRequest(async (req, res) => {
   try {

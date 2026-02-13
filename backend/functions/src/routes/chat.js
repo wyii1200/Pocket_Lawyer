@@ -6,9 +6,10 @@
 
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { db, storage } = require("../config/firebase");
 const { verifyAuth } = require("../middleware/auth");
-const { model } = require("../config/gemini");
+const getModel = require("../config/gemini");
 const pdfParse = require("pdf-parse");
 
 exports.legalChat = onCall(async (request) => {
@@ -28,6 +29,7 @@ exports.legalChat = onCall(async (request) => {
 
     const prompt = `You are a Malaysian legal assistant. Answer ONLY based on provided laws.\nContext:\n${context}\nQuestion:\n${message}`;
 
+    const model = getModel();
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const reply = response.text();

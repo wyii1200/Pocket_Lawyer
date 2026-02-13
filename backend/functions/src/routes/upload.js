@@ -7,9 +7,10 @@
 
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { db, storage } = require("../config/firebase");
 const { verifyAuth } = require("../middleware/auth");
-const { model } = require("../config/gemini");
+const getModel = require("../config/gemini");
 const pdfParse = require("pdf-parse");
 
 exports.uploadDocument = onCall(async (request) => {
