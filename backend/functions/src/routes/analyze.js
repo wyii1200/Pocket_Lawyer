@@ -11,12 +11,9 @@ const { verifyAuth } = require("../middleware/auth");
 const getModel = require("../config/gemini");
 const pdfParse = require("pdf-parse");
 
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
-
-exports.analyzeContract = onCall(async (request) => {
+exports.analyzeContract = functions.https.onRequest(async (req, res) => {
   try {
-    const { documentId } = request.data; // Data comes from request.data
-    const userUid = request.auth.uid;   // Auth is handled automatically
+    const { documentId } = req.body;
 
     // ... your existing extraction logic here ...
 
@@ -55,10 +52,9 @@ exports.analyzeContract = onCall(async (request) => {
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-  
-    return { status: "completed", analysis: text }; // Return JSON directly
+    res.status(200).json({ status: "completed", analysis: text });
   } catch (error) {
-    throw new HttpsError("internal", error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 

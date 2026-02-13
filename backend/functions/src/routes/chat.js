@@ -6,20 +6,14 @@
 
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { db, storage } = require("../config/firebase");
 const { verifyAuth } = require("../middleware/auth");
 const getModel = require("../config/gemini");
 const pdfParse = require("pdf-parse");
 
-exports.legalChat = onCall(async (request) => {
-  // Check if user is logged in
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
-  }
-
+exports.legalChat = functions.https.onRequest(async (req, res) => {
   try {
-    const { message } = request.data; // Flutter sends data here
+    const { message } = req.body;
 
     const lawsSnapshot = await db.collection("laws").limit(5).get();
     let context = "";
@@ -35,14 +29,14 @@ exports.legalChat = onCall(async (request) => {
     const reply = response.text();
 
     await db.collection("chats").add({
-      userId: request.auth.uid,
+      userId: "anonymous",
       message,
       reply,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    return { reply }; // Send directly back to Flutter
+    res.status(200).json({ reply });
   } catch (error) {
-    throw new HttpsError("internal", error.message);
+    res.status(500).json({ error: error.message });
   }
 });
