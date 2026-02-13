@@ -15,28 +15,40 @@ exports.legalChat = functions.https.onRequest(async (req, res) => {
   try {
     const { message } = req.body;
 
-    const lawsSnapshot = await db.collection("laws").limit(5).get();
-    let context = "";
-    lawsSnapshot.forEach((doc) => {
-      context += doc.data().content + "\n";
-    });
+    if (!message) {
+      return res.status(400).json({ error: "message is required" });
+    }
 
-    const prompt = `You are a Malaysian legal assistant. Answer ONLY based on provided laws.\nContext:\n${context}\nQuestion:\n${message}`;
+    // Mock response for testing
+    const mockReplies = {
+      "rights": "In Malaysia, you have several rights under the Contracts Act 1950. These include the right to enter into a binding contract, the right to interpretation of contract terms in your favor (when ambiguous), and the right to remedies for breach of contract.",
+      "contract": "A contract is a legally binding agreement between two or more parties. In Malaysia, contracts are governed by the Contracts Act 1950. The essential elements are offer, acceptance, consideration, and intention to create legal relations.",
+      "default": "I'm a legal assistant trained on Malaysian law. I can help you understand contracts, consumer rights, employment law, and other legal matters. Please ask your question clearly."
+    };
 
-    const model = getModel();
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const reply = response.text();
+    // Find the closest matching reply based on keywords
+    let reply = mockReplies.default;
+    if (message.toLowerCase().includes("right")) {
+      reply = mockReplies.rights;
+    } else if (message.toLowerCase().includes("contract")) {
+      reply = mockReplies.contract;
+    }
 
-    await db.collection("chats").add({
-      userId: "anonymous",
-      message,
-      reply,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    // Try to save to Firestore if available
+    try {
+      await db.collection("chats").add({
+        userId: "anonymous",
+        message,
+        reply,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    } catch (saveError) {
+      console.warn("Could not save chat to Firestore:", saveError.message);
+    }
 
     res.status(200).json({ reply });
   } catch (error) {
+    console.error("Chat function error:", error);
     res.status(500).json({ error: error.message });
   }
 });
