@@ -76,8 +76,7 @@ Many users face difficulty understanding legal documents or generating legal let
 
 2. Start Firebase emulator:
    ```bash
-    firebase emulators:start --project demo-pocketlawyer
-
+    firebase emulators:start --import=./emulator_data --export-on-exit
 3. Test endpoints via Postman (*optional*).
 
 4. Check browser at: http://localhost:4000/firestore to see emulator data in real-time.
