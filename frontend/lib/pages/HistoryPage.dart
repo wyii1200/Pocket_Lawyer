@@ -1,127 +1,100 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+
+//change history page to implement save history & retrive history from firestore
 
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});
-
-  final List<Map<String, String>> historyItems = const [
-    {
-      'type': 'Document Analysis',
-      'date': '2026-02-10',
-      'summary': 'Employment Contract — Medium Risk'
-    },
-    {
-      'type': 'Legal Chat',
-      'date': '2026-02-09',
-      'summary': 'Tenant rights inquiry'
-    },
-    {
-      'type': 'Letter Generated',
-      'date': '2026-02-08',
-      'summary': 'Complaint Letter — Landlord dispute'
-    },
-  ];
-
+  
   @override
   Widget build(BuildContext context) {
+    String uid = FirebaseAuth.instance.currentUser!.uid;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF1F4F9),
       appBar: AppBar(
         title: const Text(
           'History',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
-        elevation: 1,
+        
         foregroundColor: const Color(0xFF1A1F2C),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.language, semanticLabel: 'Change Language'),
-            onPressed: () {},
-          ),
-        ],
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(24),
-        itemCount: historyItems.length,
-        itemBuilder: (context, index) {
-          final item = historyItems[index];
-          return _buildHistoryItem(item);
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('history')
+            .orderBy('createdAt', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text("No history yet."),
+            );
+          }
+
+          final docs = snapshot.data!.docs;
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(24),
+            itemCount: docs.length,
+            itemBuilder: (context, index) {
+              final item = docs[index];
+              return _buildHistoryItem(
+                type: item['type'],
+                summary: item['summary'],
+                date: item['createdAt'],
+              );
+            },
+          );
         },
       ),
     );
   }
 
-  Widget _buildHistoryItem(Map<String, String> item) {
+  Widget _buildHistoryItem({
+    required String type,
+    required String summary,
+    required Timestamp date,
+  }) {
+    DateTime dt = date.toDate();
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+      
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+       child: Row(
         children: [
-          Container(
-            height: 44,
-            width: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEDF2F7),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              LucideIcons.clock,
-              color: Color(0xFF1A1F2C),
-              size: 22,
-              semanticLabel: 'History Item Icon',
-            ),
-          ),
+          const Icon(LucideIcons.clock),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  item['type']!,
-                  style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                Text(type,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(summary,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
                 Text(
-                  item['summary']!,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12,
-                    color: Colors.grey[700],
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item['date']!,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12,
-                    color: Colors.grey[500],
-                  ),
+                  "${dt.year}-${dt.month}-${dt.day}",
+                  style: const TextStyle(color: Colors.grey),
                 ),
               ],
             ),
