@@ -59,9 +59,6 @@ flutter:
   
 
 
-  # Assets setup (ready for images/icons)
-  assets:
-    - assets/images/
-    - assets/icons/
+  
 
 

@@ -10,6 +10,7 @@ class KnowYourRightsPage extends StatefulWidget {
 
 class _KnowYourRightsPageState extends State<KnowYourRightsPage> {
   int? _expandedIndex;
+  String _searchQuery = "";
 
   final List<Map<String, dynamic>> _rights = [
     {
@@ -52,6 +53,14 @@ class _KnowYourRightsPageState extends State<KnowYourRightsPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Filter logic
+    final filteredRights = _rights.where((right) {
+      final title = right['title'].toLowerCase();
+      final act = right['act'].toLowerCase();
+      return title.contains(_searchQuery.toLowerCase()) ||
+          act.contains(_searchQuery.toLowerCase());
+    }).toList();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF1F4F9),
       appBar: AppBar(
@@ -59,41 +68,59 @@ class _KnowYourRightsPageState extends State<KnowYourRightsPage> {
           icon: const Icon(LucideIcons.arrowLeft),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Know Your Rights',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-          ),
-        ),
+        title: const Text('Know Your Rights'),
         centerTitle: true,
-        backgroundColor: Colors.white,
-        elevation: 1,
-        foregroundColor: const Color(0xFF1A1F2C),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            const Center(
-              child: Text(
-                'FOR EDUCATIONAL PURPOSES ONLY',
-                style: TextStyle(
-                    fontSize: 10, color: Colors.grey, letterSpacing: 1.1),
+            const Text(
+              'FOR EDUCATIONAL PURPOSES ONLY',
+              style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey,
+                  letterSpacing: 1.1,
+                  fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+
+            // SEARCH BAR
+            TextField(
+              onChanged: (val) => setState(() => _searchQuery = val),
+              decoration: InputDecoration(
+                hintText: "Search laws or topics...",
+                prefixIcon: const Icon(LucideIcons.search, size: 18),
+                fillColor: Colors.white,
+                filled: true,
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none),
               ),
             ),
+
             const SizedBox(height: 24),
-            ..._rights.asMap().entries.map((entry) {
-              int idx = entry.key;
-              var item = entry.value;
-              return _buildRightsCard(idx, item);
-            }),
-            const SizedBox(height: 24),
+
+            // LIST OF RIGHTS
+            if (filteredRights.isEmpty)
+              const Padding(
+                padding: EdgeInsets.only(top: 40),
+                child: Text("No matching legal topics found."),
+              )
+            else
+              ...filteredRights.asMap().entries.map((entry) {
+                return _buildRightsCard(entry.key, entry.value);
+              }),
+
+            const SizedBox(height: 32),
             const Text(
               'Pocket Lawyer is an AI assistant and does not provide legal advice. Always consult a qualified lawyer for legal matters.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 11, color: Colors.grey, height: 1.5),
+              style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey,
+                  height: 1.5,
+                  fontStyle: FontStyle.italic),
             ),
           ],
         ),
@@ -107,19 +134,17 @@ class _KnowYourRightsPageState extends State<KnowYourRightsPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 4,
+              offset: const Offset(0, 2))
         ],
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
-          key: GlobalKey(),
+          key: GlobalKey(), // Ensures proper state reset on search
           initiallyExpanded: _expandedIndex == index,
           onExpansionChanged: (expanded) {
             setState(() => _expandedIndex = expanded ? index : null);
@@ -127,33 +152,23 @@ class _KnowYourRightsPageState extends State<KnowYourRightsPage> {
           leading: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFFEDF2F7),
-              borderRadius: BorderRadius.circular(8),
-            ),
+                color: const Color(0xFFEDF2F7),
+                borderRadius: BorderRadius.circular(8)),
             child: Icon(item['icon'], size: 20, color: const Color(0xFF1A1F2C)),
           ),
           title: Text(item['title'],
-              style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'Poppins')),
+              style:
+                  const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F4F9),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(item['act'].toString().toUpperCase(),
-                    style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey)),
-              ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
+              Text(item['act'].toString().toUpperCase(),
+                  style: const TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.blueGrey)),
+              const SizedBox(height: 6),
               Text(item['summary'],
                   style: TextStyle(
                       fontSize: 12, color: Colors.grey[700], height: 1.4)),

@@ -7,7 +7,6 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
-
 class GenerateLetterPage extends StatefulWidget {
   const GenerateLetterPage({super.key});
 
@@ -16,35 +15,47 @@ class GenerateLetterPage extends StatefulWidget {
 }
 
 class _GenerateLetterPageState extends State<GenerateLetterPage> {
-  // Inside _GenerateLetterPageState
   String _generatedLetterText = "";
   bool _isLoading = false;
   bool _showPreview = false;
+
   final _yourNameController = TextEditingController();
   final _recipientNameController = TextEditingController();
   final _issueController = TextEditingController();
-  String _date = DateFormat('yyyy-MM-dd').format(DateTime.now());
+  final String _date = DateFormat('MMMM dd, yyyy').format(DateTime.now());
   String _letterType = 'complaint';
 
   Future<void> _handleGenerate() async {
+    // Basic Form Validation
+    if (_yourNameController.text.isEmpty || _issueController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content:
+                Text("Please fill in your name and the issue description.")),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      //
       final result = await FirebaseFunctions.instance
-                .httpsCallable('generateLetter')
+          .httpsCallable('generateLetter')
           .call({
-        'templateId': _letterType, // complaint, demand, notice
+        'templateId': _letterType,
         'userData': {
           'userName': _yourNameController.text,
-          'recipientName': _recipientNameController.text,
+          'recipientName': _recipientNameController.text.isEmpty
+              ? "Sir/Madam"
+              : _recipientNameController.text,
           'issue': _issueController.text,
           'date': _date,
         }
       });
 
       setState(() {
-        _generatedLetterText = result.data['letterText'];
+        _generatedLetterText =
+            result.data['letterText'] ?? "Failed to generate text.";
         _showPreview = true;
         _isLoading = false;
       });
@@ -55,43 +66,34 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
       );
     }
   }
-  // PDF export
+
   Future<void> _downloadPdf() async {
     final pdf = pw.Document();
-
     pdf.addPage(
       pw.Page(
-        build: (pw.Context context) => pw.Container(
-          padding: const pw.EdgeInsets.all(24),
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) => pw.Padding(
+          padding: const pw.EdgeInsets.all(32),
           child: pw.Text(
-            _generatedLetterText.isEmpty
-                ? "No letter generated yet."
-                : _generatedLetterText,
-            style: pw.TextStyle(fontSize: 14),
+            _generatedLetterText,
+            style: const pw.TextStyle(fontSize: 12),
           ),
         ),
       ),
     );
 
-    // Opens native print/save dialog
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => pdf.save(),
+      name: '${_letterType}_letter.pdf',
     );
   }
 
-  // Share letter
   Future<void> _shareLetter() async {
-    if (_generatedLetterText.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No letter to share")),
-      );
-      return;
+    if (_generatedLetterText.isNotEmpty) {
+      await Share.share(_generatedLetterText,
+          subject: "Legal Letter - Pocket Lawyer");
     }
-    await Share.share(_generatedLetterText, subject: "Generated Letter");
   }
-
-  
-
 
   @override
   Widget build(BuildContext context) {
@@ -111,19 +113,19 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
         title: Text(
           _showPreview ? 'Letter Preview' : 'Generate Letter',
           style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-          ),
+              fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 18),
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 1,
-        foregroundColor: const Color(0xFF1A1F2C),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: _showPreview ? _buildPreview() : _buildForm(),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        child: SingleChildScrollView(
+          key: ValueKey(_showPreview),
+          padding: const EdgeInsets.all(24),
+          child: _showPreview ? _buildPreview() : _buildForm(),
+        ),
       ),
     );
   }
@@ -134,47 +136,47 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
       children: [
         _buildLabel("Your Name"),
         TextField(
-            controller: _yourNameController, decoration: _inputDecoration()),
+            controller: _yourNameController,
+            decoration: _inputDecoration("e.g. John Doe")),
         const SizedBox(height: 16),
         _buildLabel("Recipient Name"),
         TextField(
             controller: _recipientNameController,
-            decoration: _inputDecoration()),
+            decoration: _inputDecoration("e.g. HR Manager / Landlord")),
         const SizedBox(height: 16),
         _buildLabel("Letter Type"),
         DropdownButtonFormField(
           value: _letterType,
           items: const [
             DropdownMenuItem(value: 'complaint', child: Text('Complaint')),
-            DropdownMenuItem(value: 'demand', child: Text('Demand')),
+            DropdownMenuItem(value: 'demand', child: Text('Letter of Demand')),
             DropdownMenuItem(value: 'notice', child: Text('Notice')),
           ],
           onChanged: (val) => setState(() => _letterType = val as String),
-          decoration: _inputDecoration(),
-          style: const TextStyle(fontFamily: 'Poppins', color: Colors.black87),
+          decoration: _inputDecoration(null),
         ),
         const SizedBox(height: 16),
         _buildLabel("Issue Description"),
         TextField(
           controller: _issueController,
-          maxLines: 4,
-          decoration: _inputDecoration(),
+          maxLines: 5,
+          decoration:
+              _inputDecoration("Describe the facts of your situation..."),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 32),
         ElevatedButton(
-          onPressed: _isLoading ? null : _handleGenerate, // Trigger backend call
-          
+          onPressed: _isLoading ? null : _handleGenerate,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF1A1F2C),
-            foregroundColor: Colors.white,
-            minimumSize: const Size.fromHeight(50),
+            minimumSize: const Size.fromHeight(56),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
-          child: _isLoading 
-            ? const CircularProgressIndicator(color: Colors.white) 
-            : const Text('Generate Letter',
-              style: TextStyle(fontFamily: 'Poppins')),
+          child: _isLoading
+              ? const CircularProgressIndicator(color: Colors.white)
+              : const Text('Generate Letter',
+                  style: TextStyle(
+                      fontFamily: 'Poppins', fontWeight: FontWeight.bold)),
         ),
       ],
     );
@@ -184,76 +186,29 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
     return Column(
       children: [
         Container(
+          width: double.infinity,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFFE2E8F0)),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2))
-            ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(_date,
-                      style: const TextStyle(fontFamily: 'Poppins'))),
-              const SizedBox(height: 16),
-              Text(
-                  _recipientNameController.text.isEmpty
-                      ? 'Recipient Name'
-                      : _recipientNameController.text,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, fontFamily: 'Poppins')),
-              const SizedBox(height: 8),
-              const Text('Dear Sir/Madam,',
-                  style: TextStyle(fontFamily: 'Poppins')),
-              const SizedBox(height: 8),
-              Text('RE: FORMAL ${_letterType.toUpperCase()} LETTER',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, fontFamily: 'Poppins')),
-              const SizedBox(height: 16),
-              Text(
-                  'I, ${_yourNameController.text.isEmpty ? "Your Name" : _yourNameController.text}, am writing to formally bring to your attention the following matter.',
-                  style: const TextStyle(fontFamily: 'Poppins')),
-              const SizedBox(height: 8),
-              Text(
-                  _issueController.text.isEmpty
-                      ? 'Issue description will appear here.'
-                      : _issueController.text,
-                  style: const TextStyle(fontFamily: 'Poppins')),
-              const SizedBox(height: 16),
-              const Text(
-                  'I kindly request that this matter be addressed within 14 working days. Failure to respond may result in further action as permitted by law.',
-                  style: TextStyle(fontFamily: 'Poppins')),
-              const SizedBox(height: 24),
-              const Text('Yours faithfully,',
-                  style: TextStyle(fontFamily: 'Poppins')),
-              const SizedBox(height: 4),
-              Text(_yourNameController.text,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, fontFamily: 'Poppins')),
-            ],
+          child: Text(
+            _generatedLetterText,
+            style: const TextStyle(
+                fontFamily: 'Poppins', height: 1.5, fontSize: 14),
           ),
         ),
         const SizedBox(height: 24),
         Row(
           children: [
             Expanded(
-                child: ElevatedButton.icon(
+              child: ElevatedButton.icon(
                 onPressed: _downloadPdf,
-                icon: const Icon(LucideIcons.download,
-                    semanticLabel: 'Download PDF'),
-                label: const Text("Download PDF",
-                    style: TextStyle(fontFamily: 'Poppins')),
+                icon: const Icon(LucideIcons.download, size: 18),
+                label: const Text("Export PDF"),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1A1F2C),
-                  minimumSize: const Size.fromHeight(50),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
@@ -261,43 +216,42 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
             ),
             const SizedBox(width: 12),
             Expanded(
-                child: OutlinedButton.icon(
-              onPressed: _shareLetter,
-              icon:
-                  const Icon(LucideIcons.share2, semanticLabel: 'Share Letter'),
-              label:
-                  const Text("Share", style: TextStyle(fontFamily: 'Poppins')),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                side: const BorderSide(color: Color(0xFFE2E8F0)),
+              child: OutlinedButton.icon(
+                onPressed: _shareLetter,
+                icon: const Icon(LucideIcons.share2, size: 18),
+                label: const Text("Share"),
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
               ),
-            )),
+            ),
           ],
         )
       ],
     );
   }
 
-  Widget _buildLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Text(text,
-          style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              fontFamily: 'Poppins')),
-    );
-  }
+  Widget _buildLabel(String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(text,
+            style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'Poppins')),
+      );
 
-  InputDecoration _inputDecoration() {
-    return InputDecoration(
-      fillColor: Colors.white,
-      filled: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      border: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(8))),
-    );
-  }
+  InputDecoration _inputDecoration(String? hint) => InputDecoration(
+        hintText: hint,
+        fillColor: Colors.white,
+        filled: true,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+      );
 }

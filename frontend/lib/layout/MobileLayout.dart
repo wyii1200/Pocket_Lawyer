@@ -23,30 +23,31 @@ class _MobileLayoutState extends State<MobileLayout> {
 
   @override
   Widget build(BuildContext context) {
+    final double bottomPadding = MediaQuery.of(context).padding.bottom;
+
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: IndexedStack(
         index: _currentIndex,
         children: _pages,
       ),
       bottomNavigationBar: Container(
+        padding:
+            EdgeInsets.only(bottom: bottomPadding > 0 ? bottomPadding : 12),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(16),
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black12,
-              blurRadius: 4,
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 12,
+              offset: const Offset(0, -4),
             ),
           ],
-          border: Border(
-            top: BorderSide(
-              color: Theme.of(context).dividerColor,
-              width: 0.5,
-            ),
-          ),
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
@@ -54,32 +55,25 @@ class _MobileLayoutState extends State<MobileLayout> {
             setState(() => _currentIndex = index);
           },
           type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.transparent,
+          backgroundColor: Colors.white,
           elevation: 0,
           selectedItemColor: const Color(0xFF162235),
-          unselectedItemColor: Colors.grey[500],
+          unselectedItemColor: Colors.grey[400],
           selectedFontSize: 12,
           unselectedFontSize: 12,
-          selectedLabelStyle: const TextStyle(
-              fontFamily: 'Poppins', fontWeight: FontWeight.w600),
-          unselectedLabelStyle: const TextStyle(
-              fontFamily: 'Poppins', fontWeight: FontWeight.w400),
-          iconSize: 24,
-          items: const [
+          items: [
             BottomNavigationBarItem(
-              icon: Icon(LucideIcons.home),
+              icon: const Icon(LucideIcons.home),
+              activeIcon: const Icon(LucideIcons.home),
               label: 'Home',
-              tooltip: 'Home',
             ),
             BottomNavigationBarItem(
-              icon: Icon(LucideIcons.clock),
+              icon: const Icon(LucideIcons.clock),
               label: 'History',
-              tooltip: 'History',
             ),
             BottomNavigationBarItem(
-              icon: Icon(LucideIcons.user),
+              icon: const Icon(LucideIcons.user),
               label: 'Profile',
-              tooltip: 'Profile',
             ),
           ],
         ),
