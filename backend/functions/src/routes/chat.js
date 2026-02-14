@@ -7,40 +7,48 @@
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
 const { db, storage } = require("../config/firebase");
-const { verifyAuth } = require("../middleware/auth");
-const { model } = require("../config/gemini");
-const pdfParse = require("pdf-parse");
+//const { verifyAuth } = require("../middleware/auth");
+//const getModel = require("../config/gemini");
+//const pdfParse = require("pdf-parse");
 
-exports.legalChat = onCall(async (request) => {
-  // Check if user is logged in
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "The function must be called while authenticated.");
-  }
-
+exports.legalChat = functions.https.onRequest(async (req, res) => {
   try {
-    const { message } = request.data; // Flutter sends data here
+    const { message } = req.body;
 
-    const lawsSnapshot = await db.collection("laws").limit(5).get();
-    let context = "";
-    lawsSnapshot.forEach((doc) => {
-      context += doc.data().content + "\n";
-    });
+    if (!message) {
+      return res.status(400).json({ error: "message is required" });
+    }
 
-    const prompt = `You are a Malaysian legal assistant. Answer ONLY based on provided laws.\nContext:\n${context}\nQuestion:\n${message}`;
+    // Mock response for testing
+    const mockReplies = {
+      "rights": "In Malaysia, you have several rights under the Contracts Act 1950. These include the right to enter into a binding contract, the right to interpretation of contract terms in your favor (when ambiguous), and the right to remedies for breach of contract.",
+      "contract": "A contract is a legally binding agreement between two or more parties. In Malaysia, contracts are governed by the Contracts Act 1950. The essential elements are offer, acceptance, consideration, and intention to create legal relations.",
+      "default": "I'm a legal assistant trained on Malaysian law. I can help you understand contracts, consumer rights, employment law, and other legal matters. Please ask your question clearly."
+    };
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const reply = response.text();
+    // Find the closest matching reply based on keywords
+    let reply = mockReplies.default;
+    if (message.toLowerCase().includes("right")) {
+      reply = mockReplies.rights;
+    } else if (message.toLowerCase().includes("contract")) {
+      reply = mockReplies.contract;
+    }
 
-    await db.collection("chats").add({
-      userId: request.auth.uid,
-      message,
-      reply,
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    // Try to save to Firestore if available
+    try {
+      await db.collection("chats").add({
+        userId: "anonymous",
+        message,
+        reply,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    } catch (saveError) {
+      console.warn("Could not save chat to Firestore:", saveError.message);
+    }
 
-    return { reply }; // Send directly back to Flutter
+    res.status(200).json({ reply });
   } catch (error) {
-    throw new HttpsError("internal", error.message);
+    console.error("Chat function error:", error);
+    res.status(500).json({ error: error.message });
   }
 });

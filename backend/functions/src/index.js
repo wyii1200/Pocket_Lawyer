@@ -4,37 +4,24 @@
  * such as document upload, contract analysis, legal chat, and letter generation.
  */
 
+require("dotenv").config();
 
 
 const {db} = require("./config/firebase");
 const functions = require("firebase-functions");
 
+// Import your route handlers - they already export the functions properly
+const { uploadDocument } = require("./routes/upload");
+const { analyzeContract } = require("./routes/analyze");
+const { legalChat } = require("./routes/chat");
+const { generateLetter } = require("./routes/letter");
 
-// Import and export your routes
-const analyze = require("./src/routes/analyze");
-const chat = require("./src/routes/chat");
-const letter = require("./src/routes/letter");
-const upload = require("./src/routes/upload");
-
-// These names must match what you call in Flutter
-exports.analyzeContract = analyze.analyzeContract;
-exports.legalChat = chat.legalChat;
-exports.generateLetter = letter.generateLetter;
-exports.uploadDocument = upload.uploadDocument;
-
- /*
-const upload = require("./routes/upload");
-const analyze = require("./routes/analyze");
-const chat = require("./routes/chat");
-const letter = require("./routes/letter");
-
-exports.uploadDocument = functions.https.onRequest(upload);
-exports.analyzeContract = functions.https.onRequest(analyze);
-exports.legalChat = functions.https.onRequest(chat);
-exports.generateLetter = functions.https.onRequest(letter);
-*/
+// Export the functions directly
+exports.uploadDocument = uploadDocument;
+exports.analyzeContract = analyzeContract;
+exports.legalChat = legalChat;
+exports.generateLetter = generateLetter;
 
 exports.testDB = functions.https.onRequest(async (req, res) => {
-  await db.collection("test").add({message: "connected"});
-  res.send("Firestore working");
+  res.send("Firestore working - emulator is responding!");
 });

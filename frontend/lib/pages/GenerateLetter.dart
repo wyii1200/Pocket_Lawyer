@@ -6,7 +6,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
-
+import 'package:shared_preferences/shared_preferences.dart';
 
 class GenerateLetterPage extends StatefulWidget {
   const GenerateLetterPage({super.key});
@@ -16,85 +16,106 @@ class GenerateLetterPage extends StatefulWidget {
 }
 
 class _GenerateLetterPageState extends State<GenerateLetterPage> {
-  // Inside _GenerateLetterPageState
   String _generatedLetterText = "";
   bool _isLoading = false;
   bool _showPreview = false;
+  String _selectedLang = 'en';
+
   final _yourNameController = TextEditingController();
   final _recipientNameController = TextEditingController();
   final _issueController = TextEditingController();
-  String _date = DateFormat('yyyy-MM-dd').format(DateTime.now());
+  final String _date = DateFormat('MMMM dd, yyyy').format(DateTime.now());
   String _letterType = 'complaint';
 
+  @override
+  void initState() {
+    super.initState();
+    _loadLanguage();
+  }
+
+  Future<void> _loadLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _selectedLang = prefs.getString('app_language') ?? 'en';
+    });
+  }
+
   Future<void> _handleGenerate() async {
+    bool isEn = _selectedLang == 'en';
+    if (_yourNameController.text.isEmpty || _issueController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(isEn
+                ? "Please fill in your name and the issue description."
+                : "Sila isi nama anda dan keterangan isu.")),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
-      //
       final result = await FirebaseFunctions.instance
-                .httpsCallable('generateLetter')
+          .httpsCallable('generateLetter')
           .call({
-        'templateId': _letterType, // complaint, demand, notice
+        'templateId': _letterType,
         'userData': {
           'userName': _yourNameController.text,
-          'recipientName': _recipientNameController.text,
+          'recipientName': _recipientNameController.text.isEmpty
+              ? (isEn ? "Sir/Madam" : "Tuan/Puan")
+              : _recipientNameController.text,
           'issue': _issueController.text,
           'date': _date,
+          'lang': _selectedLang,
         }
       });
 
       setState(() {
-        _generatedLetterText = result.data['letterText'];
+        _generatedLetterText =
+            result.data['letterText'] ?? "Failed to generate text.";
         _showPreview = true;
         _isLoading = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Generation failed: $e")),
+        SnackBar(content: Text("Error: $e")),
       );
     }
   }
-  // PDF export
+
   Future<void> _downloadPdf() async {
     final pdf = pw.Document();
-
     pdf.addPage(
       pw.Page(
-        build: (pw.Context context) => pw.Container(
-          padding: const pw.EdgeInsets.all(24),
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) => pw.Padding(
+          padding: const pw.EdgeInsets.all(32),
           child: pw.Text(
-            _generatedLetterText.isEmpty
-                ? "No letter generated yet."
-                : _generatedLetterText,
-            style: pw.TextStyle(fontSize: 14),
+            _generatedLetterText,
+            style: const pw.TextStyle(fontSize: 12),
           ),
         ),
       ),
     );
 
-    // Opens native print/save dialog
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => pdf.save(),
+      name: '${_letterType}_letter.pdf',
     );
   }
 
-  // Share letter
   Future<void> _shareLetter() async {
-    if (_generatedLetterText.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No letter to share")),
-      );
-      return;
+    if (_generatedLetterText.isNotEmpty) {
+      await Share.share(_generatedLetterText,
+          subject: "Legal Letter - Pocket Lawyer");
     }
-    await Share.share(_generatedLetterText, subject: "Generated Letter");
   }
-
-  
-
 
   @override
   Widget build(BuildContext context) {
+    bool isEn = _selectedLang == 'en';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF1F4F9),
       appBar: AppBar(
@@ -109,151 +130,119 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
           },
         ),
         title: Text(
-          _showPreview ? 'Letter Preview' : 'Generate Letter',
+          _showPreview
+              ? (isEn ? 'Letter Preview' : 'Pratonton Surat')
+              : (isEn ? 'Generate Letter' : 'Jana Surat'),
           style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-          ),
+              fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 18),
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 1,
-        foregroundColor: const Color(0xFF1A1F2C),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: _showPreview ? _buildPreview() : _buildForm(),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        child: SingleChildScrollView(
+          key: ValueKey(_showPreview),
+          padding: const EdgeInsets.all(24),
+          child: _showPreview ? _buildPreview(isEn) : _buildForm(isEn),
+        ),
       ),
     );
   }
 
-  Widget _buildForm() {
+  Widget _buildForm(bool isEn) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildLabel("Your Name"),
+        _buildLabel(isEn ? "Your Name" : "Nama Anda"),
         TextField(
-            controller: _yourNameController, decoration: _inputDecoration()),
+            controller: _yourNameController,
+            decoration:
+                _inputDecoration(isEn ? "e.g. John Doe" : "cth. Ali Bin Abu")),
         const SizedBox(height: 16),
-        _buildLabel("Recipient Name"),
+        _buildLabel(isEn ? "Recipient Name" : "Nama Penerima"),
         TextField(
             controller: _recipientNameController,
-            decoration: _inputDecoration()),
+            decoration:
+                _inputDecoration(isEn ? "e.g. Landlord" : "cth. Tuan Rumah")),
         const SizedBox(height: 16),
-        _buildLabel("Letter Type"),
+        _buildLabel(isEn ? "Letter Type" : "Jenis Surat"),
         DropdownButtonFormField(
           value: _letterType,
-          items: const [
-            DropdownMenuItem(value: 'complaint', child: Text('Complaint')),
-            DropdownMenuItem(value: 'demand', child: Text('Demand')),
-            DropdownMenuItem(value: 'notice', child: Text('Notice')),
+          items: [
+            DropdownMenuItem(
+                value: 'complaint', child: Text(isEn ? 'Complaint' : 'Aduan')),
+            DropdownMenuItem(
+                value: 'demand',
+                child: Text(isEn ? 'Letter of Demand' : 'Surat Tuntutan')),
+            DropdownMenuItem(
+                value: 'notice', child: Text(isEn ? 'Notice' : 'Notis')),
           ],
           onChanged: (val) => setState(() => _letterType = val as String),
-          decoration: _inputDecoration(),
-          style: const TextStyle(fontFamily: 'Poppins', color: Colors.black87),
+          decoration: _inputDecoration(null),
         ),
         const SizedBox(height: 16),
-        _buildLabel("Issue Description"),
+        _buildLabel(isEn ? "Issue Description" : "Keterangan Isu"),
         TextField(
           controller: _issueController,
-          maxLines: 4,
-          decoration: _inputDecoration(),
+          maxLines: 5,
+          decoration: _inputDecoration(isEn
+              ? "Describe the facts..."
+              : "Terangkan fakta situasi anda..."),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 32),
         ElevatedButton(
-          onPressed: _isLoading ? null : _handleGenerate, // Trigger backend call
-          
+          onPressed: _isLoading ? null : _handleGenerate,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF1A1F2C),
+            backgroundColor: const Color(0xFF162235),
             foregroundColor: Colors.white,
-            minimumSize: const Size.fromHeight(50),
+            minimumSize: const Size.fromHeight(56),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
-          child: _isLoading 
-            ? const CircularProgressIndicator(color: Colors.white) 
-            : const Text('Generate Letter',
-              style: TextStyle(fontFamily: 'Poppins')),
+          child: _isLoading
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                      color: Colors.white, strokeWidth: 2))
+              : Text(isEn ? 'Generate Letter' : 'Jana Surat',
+                  style: const TextStyle(
+                      fontFamily: 'Poppins', fontWeight: FontWeight.bold)),
         ),
       ],
     );
   }
 
-  Widget _buildPreview() {
+  Widget _buildPreview(bool isEn) {
     return Column(
       children: [
         Container(
+          width: double.infinity,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFFE2E8F0)),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2))
-            ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(_date,
-                      style: const TextStyle(fontFamily: 'Poppins'))),
-              const SizedBox(height: 16),
-              Text(
-                  _recipientNameController.text.isEmpty
-                      ? 'Recipient Name'
-                      : _recipientNameController.text,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, fontFamily: 'Poppins')),
-              const SizedBox(height: 8),
-              const Text('Dear Sir/Madam,',
-                  style: TextStyle(fontFamily: 'Poppins')),
-              const SizedBox(height: 8),
-              Text('RE: FORMAL ${_letterType.toUpperCase()} LETTER',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, fontFamily: 'Poppins')),
-              const SizedBox(height: 16),
-              Text(
-                  'I, ${_yourNameController.text.isEmpty ? "Your Name" : _yourNameController.text}, am writing to formally bring to your attention the following matter.',
-                  style: const TextStyle(fontFamily: 'Poppins')),
-              const SizedBox(height: 8),
-              Text(
-                  _issueController.text.isEmpty
-                      ? 'Issue description will appear here.'
-                      : _issueController.text,
-                  style: const TextStyle(fontFamily: 'Poppins')),
-              const SizedBox(height: 16),
-              const Text(
-                  'I kindly request that this matter be addressed within 14 working days. Failure to respond may result in further action as permitted by law.',
-                  style: TextStyle(fontFamily: 'Poppins')),
-              const SizedBox(height: 24),
-              const Text('Yours faithfully,',
-                  style: TextStyle(fontFamily: 'Poppins')),
-              const SizedBox(height: 4),
-              Text(_yourNameController.text,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, fontFamily: 'Poppins')),
-            ],
+          child: Text(
+            _generatedLetterText,
+            style: const TextStyle(
+                fontFamily: 'Poppins', height: 1.5, fontSize: 14),
           ),
         ),
         const SizedBox(height: 24),
         Row(
           children: [
             Expanded(
-                child: ElevatedButton.icon(
+              child: ElevatedButton.icon(
                 onPressed: _downloadPdf,
-                icon: const Icon(LucideIcons.download,
-                    semanticLabel: 'Download PDF'),
-                label: const Text("Download PDF",
-                    style: TextStyle(fontFamily: 'Poppins')),
+                icon: const Icon(LucideIcons.download, size: 18),
+                label: Text(isEn ? "Export PDF" : "Eksport PDF"),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1A1F2C),
-                  minimumSize: const Size.fromHeight(50),
+                  backgroundColor: const Color(0xFF162235),
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
@@ -261,43 +250,42 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
             ),
             const SizedBox(width: 12),
             Expanded(
-                child: OutlinedButton.icon(
-              onPressed: _shareLetter,
-              icon:
-                  const Icon(LucideIcons.share2, semanticLabel: 'Share Letter'),
-              label:
-                  const Text("Share", style: TextStyle(fontFamily: 'Poppins')),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                side: const BorderSide(color: Color(0xFFE2E8F0)),
+              child: OutlinedButton.icon(
+                onPressed: _shareLetter,
+                icon: const Icon(LucideIcons.share2, size: 18),
+                label: Text(isEn ? "Share" : "Kongsi"),
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
               ),
-            )),
+            ),
           ],
         )
       ],
     );
   }
 
-  Widget _buildLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Text(text,
-          style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              fontFamily: 'Poppins')),
-    );
-  }
+  Widget _buildLabel(String text) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(text,
+            style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'Poppins')),
+      );
 
-  InputDecoration _inputDecoration() {
-    return InputDecoration(
-      fillColor: Colors.white,
-      filled: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-      border: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(Radius.circular(8))),
-    );
-  }
+  InputDecoration _inputDecoration(String? hint) => InputDecoration(
+        hintText: hint,
+        fillColor: Colors.white,
+        filled: true,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+      );
 }

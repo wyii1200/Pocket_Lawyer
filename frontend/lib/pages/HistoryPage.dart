@@ -1,94 +1,250 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class HistoryPage extends StatelessWidget {
+class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
 
-  final List<Map<String, String>> historyItems = const [
-    {
-      'type': 'Document Analysis',
-      'date': '2026-02-10',
-      'summary': 'Employment Contract — Medium Risk'
-    },
-    {
-      'type': 'Legal Chat',
-      'date': '2026-02-09',
-      'summary': 'Tenant rights inquiry'
-    },
-    {
-      'type': 'Letter Generated',
-      'date': '2026-02-08',
-      'summary': 'Complaint Letter — Landlord dispute'
-    },
-  ];
+  @override
+  State<HistoryPage> createState() => _HistoryPageState();
+}
+
+class _HistoryPageState extends State<HistoryPage> {
+  String _searchQuery = "";
+  String _selectedCategory = "All";
+  String _selectedLang = 'en';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLanguage();
+  }
+
+  Future<void> _loadLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _selectedLang = prefs.getString('app_language') ?? 'en';
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    bool isEn = _selectedLang == 'en';
+    String uid = FirebaseAuth.instance.currentUser!.uid;
+
+    final List<String> categories = [
+      isEn ? "All" : "Semua",
+      "Document Analysis",
+      "Letter Generation"
+    ];
+
+    String displayCategory =
+        _selectedCategory == "Semua" ? "All" : _selectedCategory;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF1F4F9),
       appBar: AppBar(
-        title: const Text(
-          'History',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-          ),
-        ),
+        title: Text(isEn ? 'History' : 'Sejarah'),
         centerTitle: true,
         backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF162235),
         elevation: 1,
-        foregroundColor: const Color(0xFF1A1F2C),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.language, semanticLabel: 'Change Language'),
-            onPressed: () {},
+      ),
+      body: Column(
+        children: [
+          // 1. SEARCH BAR
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) =>
+                  setState(() => _searchQuery = value.toLowerCase()),
+              decoration: InputDecoration(
+                hintText: isEn
+                    ? "Search your legal history..."
+                    : "Cari sejarah undang-undang...",
+                prefixIcon: const Icon(LucideIcons.search, size: 20),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(LucideIcons.x, size: 16),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = "");
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+          ),
+
+          // 2. CATEGORY CHIPS
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Row(
+              children: categories.map((category) {
+                bool isSelected = _selectedCategory == category;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(category),
+                    selected: isSelected,
+                    onSelected: (bool value) {
+                      setState(() => _selectedCategory = category);
+                    },
+                    backgroundColor: Colors.white,
+                    selectedColor: const Color(0xFF162235).withOpacity(0.1),
+                    labelStyle: TextStyle(
+                      color: isSelected
+                          ? const Color(0xFF162235)
+                          : Colors.grey[600],
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20)),
+                    side: BorderSide(
+                        color: isSelected
+                            ? const Color(0xFF162235)
+                            : Colors.transparent),
+                    showCheckmark: false,
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+
+          // 3. FILTERED LIST
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(uid)
+                  .collection('history')
+                  .orderBy('createdAt', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return Center(
+                    child: Text(
+                        isEn ? "No records found." : "Tiada rekod dijumpai."),
+                  );
+                }
+
+                final filteredDocs = snapshot.data!.docs.where((doc) {
+                  final type = doc['type'].toString();
+                  final summary = doc['summary'].toString().toLowerCase();
+
+                  bool matchesSearch =
+                      type.toLowerCase().contains(_searchQuery) ||
+                          summary.contains(_searchQuery);
+
+                  bool matchesCategory =
+                      displayCategory == "All" || type == displayCategory;
+
+                  return matchesSearch && matchesCategory;
+                }).toList();
+
+                if (filteredDocs.isEmpty) {
+                  return Center(
+                      child: Text(isEn
+                          ? "No matches found."
+                          : "Tiada padanan ditemui."));
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(24),
+                  itemCount: filteredDocs.length,
+                  itemBuilder: (context, index) {
+                    final item = filteredDocs[index];
+                    return _buildDismissibleItem(item, uid, isEn);
+                  },
+                );
+              },
+            ),
           ),
         ],
-      ),
-      body: ListView.builder(
-        padding: const EdgeInsets.all(24),
-        itemCount: historyItems.length,
-        itemBuilder: (context, index) {
-          final item = historyItems[index];
-          return _buildHistoryItem(item);
-        },
       ),
     );
   }
 
-  Widget _buildHistoryItem(Map<String, String> item) {
+  Widget _buildDismissibleItem(DocumentSnapshot item, String uid, bool isEn) {
+    return Dismissible(
+      key: Key(item.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.only(right: 20),
+        alignment: Alignment.centerRight,
+        decoration: BoxDecoration(
+          color: Colors.redAccent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(LucideIcons.trash2, color: Colors.white),
+      ),
+      onDismissed: (_) {
+        FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('history')
+            .doc(item.id)
+            .delete();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isEn ? "Entry deleted" : "Entri dipadam")),
+        );
+      },
+      child: _buildHistoryItem(
+        type: item['type'],
+        summary: item['summary'],
+        date: item['createdAt'] ?? Timestamp.now(),
+        isEn: isEn,
+      ),
+    );
+  }
+
+  Widget _buildHistoryItem(
+      {required String type,
+      required String summary,
+      required Timestamp date,
+      required bool isEn}) {
+    DateTime dt = date.toDate();
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(0.02),
             blurRadius: 4,
             offset: const Offset(0, 2),
-          ),
+          )
         ],
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: 44,
-            width: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEDF2F7),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              LucideIcons.clock,
-              color: Color(0xFF1A1F2C),
-              size: 22,
-              semanticLabel: 'History Item Icon',
-            ),
+          Icon(
+            type == "Document Analysis"
+                ? LucideIcons.fileSearch
+                : LucideIcons.fileText,
+            size: 20,
+            color: const Color(0xFF162235),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -96,33 +252,21 @@ class HistoryPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item['type']!,
+                  // Localize the type label if necessary
+                  type == "Document Analysis"
+                      ? (isEn ? "Document Analysis" : "Analisis Dokumen")
+                      : (isEn ? "Letter Generation" : "Penjanaan Surat"),
                   style: const TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+                      fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  item['summary']!,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12,
-                    color: Colors.grey[700],
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item['date']!,
-                  style: TextStyle(
-                    fontFamily: 'Poppins',
-                    fontSize: 12,
-                    color: Colors.grey[500],
-                  ),
-                ),
+                Text(summary,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, color: Colors.grey[800])),
+                const SizedBox(height: 8),
+                Text("${dt.day}/${dt.month}/${dt.year}",
+                    style: const TextStyle(color: Colors.grey, fontSize: 11)),
               ],
             ),
           ),

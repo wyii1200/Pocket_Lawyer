@@ -3,9 +3,11 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
     <application
-        android:label="pocket_lawyer"
-        android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+    android:label="pocket_lawyer"
+    android:name="${applicationName}"
+    android:icon="@mipmap/ic_launcher"
+    android:networkSecurityConfig="@xml/network_security_config"
+    android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"

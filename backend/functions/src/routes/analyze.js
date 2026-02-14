@@ -5,27 +5,52 @@
 */
 
 const admin = require("firebase-admin");
-const functions = require("firebase-functions");
+//const functions = require("firebase-functions");
 const { db, storage } = require("../config/firebase");
-const { verifyAuth } = require("../middleware/auth");
-const { model } = require("../config/gemini");
+//const { verifyAuth } = require("../middleware/auth");
+//const getModel = require("../config/gemini");
 const pdfParse = require("pdf-parse");
 const vision = require("@google-cloud/vision"); // For OCR
 const client = new vision.ImageAnnotatorClient();
 
+
+//change from onRequest to onCall for better error handling and auth support
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 
+
+// quick debug test
 exports.analyzeContract = onCall(async (request) => {
+  console.log("ANALYZE CALLED");
+  return { message: "Function working!" };
+});
+
+
+
+
+
+/*exports.analyzeContract = onCall(async (request) => {
   try {
-    const { documentId } = request.data; // Data comes from request.data
-    const userUid = request.auth.uid;   // Auth is handled automatically
+    const { documentId, contractText } = request.data;
 
-    // ... your existing extraction logic here ...
+    if (!documentId && !contractText) {
+      throw new HttpsError(
+        "invalid-argument",
+        "Either documentId or contractText is required"
+      );
+    }
 
-    const docRef = db.collection("documents").doc(documentId);
-    const docSnap = await docRef.get();
+    let extractedText = contractText;
+    
+    console.log("Incoming data:", request.data);
 
-    if (!docSnap.exists) throw new Error("Document not found");
+  
+    if (!extractedText && documentId) {
+      const docRef = db.collection("documents").doc(documentId);
+      const docSnap = await docRef.get();
+
+      if (!docSnap.exists) {
+        throw new HttpsError("not-found", "Document not found");
+      }
 
     const {filePath} = docSnap.data();
 
@@ -68,14 +93,12 @@ exports.analyzeContract = onCall(async (request) => {
 
     await docRef.update({
       status: "completed",
-      analysis: text,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+      analysis: mockAnalysis,
+    };
 
-  
-    return { status: "completed", analysis: text }; // Return JSON directly
   } catch (error) {
+    console.error("Analyze function error:", error);
     throw new HttpsError("internal", error.message);
   }
 });
-
+*/

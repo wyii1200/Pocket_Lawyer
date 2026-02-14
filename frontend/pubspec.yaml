@@ -13,30 +13,38 @@ dependencies:
   flutter_localizations:
     sdk: flutter
 
-  # UI & Fonts
+  # --- Core Persistence & Logic ---
+  shared_preferences: ^2.2.2
+  intl: ^0.20.2
+
+  # --- UI, Icons & Animations ---
   cupertino_icons: ^1.0.8
   lucide_icons: ^0.257.0
-  google_fonts: ^8.0.1
+  google_fonts: ^6.1.0
+  smooth_page_indicator: ^1.1.0
+  animate_do: ^3.3.4       
+  lottie: ^3.1.0          
 
-  # Networking & file handling
-  http: ^1.6.0
-  file_picker: ^10.3.10
-  image_picker: ^0.8.7+5
+  # --- Networking & File Handling ---
+  http: ^1.1.0
+  file_picker: ^8.0.0
+  image_picker: ^1.0.4
 
-  # Optional Generative AI features
+  # --- Generative AI & Markdown Support ---
   google_generative_ai: ^0.4.0
-  flutter_markdown_plus: ^1.0.7
-  firebase_core: ^4.4.0
-  cloud_firestore: ^6.1.2
-  firebase_auth: ^6.1.4
-  firebase_storage: ^13.0.6
-  cloud_functions: ^6.0.6
-  
+  flutter_markdown: ^0.6.18+2
 
-  #Download PDF and Share
+  # --- Firebase Suite 
+  firebase_core: ^3.0.0
+  cloud_firestore: ^5.0.0
+  firebase_auth: ^5.0.0
+  firebase_storage: ^12.0.0
+  cloud_functions: ^5.0.0
+
+  # --- PDF Generation, Printing & Sharing ---
   pdf: ^3.10.8
   printing: ^5.12.0
-  share_plus: ^7.0.0
+  share_plus: ^7.1.0
 
   #image to text
   google_mlkit_text_recognition: ^0.15.1
@@ -47,12 +55,17 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
+  flutter_lints: ^3.0.0
 
 flutter:
   uses-material-design: true
 
-  # Fonts setup
+  
+  assets:
+    - assets/
+  
+
+  # Fonts setup for consistent branding
   fonts:
     - family: Poppins
       fonts:
@@ -61,13 +74,3 @@ flutter:
           weight: 700
         - asset: assets/fonts/Poppins-Medium.ttf
           weight: 500
-
-  
-
-
-  # Assets setup (ready for images/icons)
-  assets:
-    - assets/images/
-    - assets/icons/
-
-

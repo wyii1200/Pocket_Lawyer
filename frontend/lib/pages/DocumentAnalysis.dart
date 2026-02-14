@@ -1,16 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-
-
-String _analysisResult = ""; // Variable to store the JS response
-
-
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DocumentAnalysisPage extends StatefulWidget {
   const DocumentAnalysisPage({super.key});
@@ -20,103 +16,87 @@ class DocumentAnalysisPage extends StatefulWidget {
 }
 
 class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
-  
+  String _currentState = 'upload';
+  Map<String, dynamic>? _analysisData;
+  int? _expandedIndex;
+  String _selectedLang = 'en';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLanguage();
+  }
+
+  Future<void> _loadLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _selectedLang = prefs.getString('app_language') ?? 'en';
+    });
+  }
+
+  Future<String> uploadFileToStorage(File file) async {
+    final fileName = DateTime.now().millisecondsSinceEpoch.toString();
+    final extension = file.path.endsWith('.pdf') ? 'pdf' : 'jpg';
+    final ref =
+        FirebaseStorage.instance.ref().child("documents/$fileName.$extension");
+
+    await ref.putFile(file);
+    return ref.fullPath;
+  }
+
   Future<void> _sendFileToBackend(File file) async {
     setState(() => _currentState = 'loading');
 
     try {
-      // Convert file to base64
-      final bytes = await file.readAsBytes();
-      final base64Data = base64Encode(bytes);
+      final filePath = await uploadFileToStorage(file);
 
-      // Replace with your deployed Cloud Function URL
-      final uri = Uri.parse('http://10.0.2.2:5001/pocketlawyer-ai-2025/us-central1/analyzeContract');
+      final docRef =
+          await FirebaseFirestore.instance.collection("documents").add({
+        "filePath": filePath,
+        "status": "processing",
+        "createdAt": FieldValue.serverTimestamp(),
+      });
 
-      final response = await http.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'fileData': base64Data,
-          'fileName': file.path.split('/').last,
-        }),
-      );
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('analyzeContract')
+          .call({"documentId": docRef.id});
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          _analysisResult = data['analysis'] ?? "No data";
-          _currentState = 'result';
-        });
-      } else {
-        throw Exception('Server Error: ${response.statusCode}');
-      }
+      setState(() {
+        _analysisData = Map<String, dynamic>.from(result.data);
+        _currentState = 'result';
+      });
     } catch (e) {
       setState(() => _currentState = 'upload');
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Backend Error: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Analysis failed: $e")),
+      );
     }
   }
 
-    Future<void> _pickPDFAndAnalyze() async {
+  Future<void> _pickPDFAndAnalyze() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
     );
 
     if (result != null && result.files.single.path != null) {
-      File file = File(result.files.single.path!);
-      await _sendFileToBackend(file);
+      await _sendFileToBackend(File(result.files.single.path!));
     }
   }
 
   Future<void> _scanCameraAndAnalyze() async {
-      final picker = ImagePicker();
-      XFile? image = await picker.pickImage(source: ImageSource.camera);
+    final picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.camera);
 
-      if (image != null) {
-        File file = File(image.path);
-        await _sendFileToBackend(file);
-      }
+    if (image != null) {
+      await _sendFileToBackend(File(image.path));
     }
-
-
-  // Inside _DocumentAnalysisPageState
-  Future<void> _runRealAnalysis() async {
-
-
-    setState(() => _currentState = 'loading');
-    try {
-      // Calling the JS export "analyzeContract"
-      final result = await FirebaseFunctions.instance
-          .httpsCallable('analyzeContract') 
-          .call({'documentId': 'your_actual_doc_id'});
-
-      setState(() {
-        _analysisResult = result.data['analysis'] ?? "No data";
-        _currentState = 'result';
-      });
-    } catch (e) {
-      setState(() => _currentState = 'upload');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Backend Error: $e")),
-      );
-    }
-  }
-
-  String _currentState = 'upload'; // upload, loading, result
-  int? _expandedIndex;
-
-  void _startAnalysis() {
-    setState(() => _currentState = 'loading');
-    Future.delayed(const Duration(seconds: 3), () {
-      setState(() => _currentState = 'result');
-    });
   }
 
   @override
   Widget build(BuildContext context) {
+    bool isEn = _selectedLang == 'en';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -124,68 +104,62 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
           icon: const Icon(LucideIcons.arrowLeft),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Analyze Document',
-          style: TextStyle(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-          ),
-        ),
+        title: Text(isEn ? 'Analyze Document' : 'Analisis Dokumen'),
         centerTitle: true,
-        backgroundColor: Colors.white,
-        elevation: 1,
-        foregroundColor: const Color(0xFF1A1F2C),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: _buildContent(),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        child: SingleChildScrollView(
+          key: ValueKey(_currentState),
+          padding: const EdgeInsets.all(24),
+          child: _buildContent(isEn),
+        ),
       ),
     );
   }
 
-  Widget _buildContent() {
-    if (_currentState == 'upload') return _buildUploadState();
-    if (_currentState == 'loading') return _buildLoadingState();
-    return _buildResultState();
+  Widget _buildContent(bool isEn) {
+    switch (_currentState) {
+      case 'loading':
+        return _buildLoadingState(isEn);
+      case 'result':
+        return _buildResultState(isEn);
+      default:
+        return _buildUploadState(isEn);
+    }
   }
 
   // --- 1. UPLOAD STATE ---
-  Widget _buildUploadState() {
+  Widget _buildUploadState(bool isEn) {
     return Column(
       children: [
         const SizedBox(height: 40),
         const CircleAvatar(
           radius: 48,
           backgroundColor: Color(0xFFEDF2F7),
-          child: Icon(LucideIcons.upload,
-              size: 40, color: Color(0xFF1A1F2C), semanticLabel: 'Upload Icon'),
+          child: Icon(LucideIcons.upload, size: 40, color: Color(0xFF1A1F2C)),
         ),
         const SizedBox(height: 20),
         Text(
-          'Upload your legal document',
-          style: TextStyle(
-              fontSize: 16, color: Colors.grey[600], fontFamily: 'Poppins'),
+          isEn
+              ? 'Upload your legal document'
+              : 'Muat naik dokumen undang-undang anda',
+          style: const TextStyle(fontSize: 16),
         ),
-        const SizedBox(height: 4),
-        Text(
+        const Text(
           'GUIDED BY CONTRACTS ACT 1950',
-          style: const TextStyle(
-              fontSize: 10,
-              letterSpacing: 1.1,
-              fontFamily: 'Poppins',
-              fontWeight: FontWeight.w500),
+          style: TextStyle(fontSize: 10, color: Colors.grey),
         ),
         const SizedBox(height: 40),
         Row(
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: _pickPDFAndAnalyze, // 🔥 CHANGED FROM _startAnalysis
+                onPressed: _pickPDFAndAnalyze,
                 icon: const Icon(LucideIcons.file),
-                label: const Text('Upload PDF'),
+                label: Text(isEn ? 'Upload PDF' : 'Muat Naik PDF'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1A1F2C),
+                  backgroundColor: const Color(0xFF162235),
                   foregroundColor: Colors.white,
                   minimumSize: const Size.fromHeight(50),
                   shape: RoundedRectangleBorder(
@@ -196,15 +170,13 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
             const SizedBox(width: 12),
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: _scanCameraAndAnalyze, // 🔥 CHANGED FROM _startAnalysis
+                onPressed: _scanCameraAndAnalyze,
                 icon: const Icon(LucideIcons.camera),
-                label: const Text('Camera Scan'),
+                label: Text(isEn ? 'Camera Scan' : 'Imbasan Kamera'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF1A1F2C),
                   minimumSize: const Size.fromHeight(50),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
-                  side: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
               ),
             ),
@@ -215,26 +187,31 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
   }
 
   // --- 2. LOADING STATE ---
-  Widget _buildLoadingState() {
+  Widget _buildLoadingState(bool isEn) {
     return Column(
       children: [
         const SizedBox(height: 100),
         const CircularProgressIndicator(color: Color(0xFF1A1F2C)),
         const SizedBox(height: 20),
         Text(
-          'Analyzing your document...',
-          style: TextStyle(color: Colors.grey[600], fontFamily: 'Poppins'),
+          isEn ? 'Analyzing your document...' : 'Menganalisis dokumen anda...',
+          style: const TextStyle(color: Colors.grey),
         ),
       ],
     );
   }
 
   // --- 3. RESULT STATE ---
-  Widget _buildResultState() {
+  Widget _buildResultState(bool isEn) {
+    final String risk =
+        _analysisData?['riskLevel']?.toString().toUpperCase() ?? 'UNKNOWN';
+    final Color riskColor = risk == 'HIGH'
+        ? Colors.red
+        : (risk == 'MEDIUM' ? Colors.orange : Colors.green);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Risk Level Badge
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -242,129 +219,90 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
-          child: const Row(
+          child: Row(
             children: [
-              Icon(LucideIcons.alertTriangle,
-                  color: Colors.orange, size: 24, semanticLabel: 'Risk Level'),
-              SizedBox(width: 12),
+              Icon(LucideIcons.alertTriangle, color: riskColor, size: 24),
+              const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  //Analyze the risk level based on _analysisResult
-                 /* _analysisResult.isEmpty
-                      ? "No analysis result."
-                      : _analysisResult,
-                  style: const TextStyle(fontFamily: 'Poppins'),*/
-                  Text(
-                    'Risk Level',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                        fontFamily: 'Poppins'),
-                  ),
-                  Text(
-                    'MEDIUM',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.orange,
-                        fontFamily: 'Poppins'),
-                  ),
+                  Text(isEn ? 'Risk Level' : 'Tahap Risiko',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(risk,
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, color: riskColor)),
                 ],
               ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
-        // Clauses List
-        const Text(
-          'Risky Clauses Found',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            fontFamily: 'Poppins',
-          ),
+        const SizedBox(height: 24),
+        Text(
+          isEn ? 'Risky Clauses Found' : 'Klausa Berisiko Ditemui',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        _buildClauseCard(
-          0,
-          'Termination Clause',
-          'Allows immediate termination without notice.',
-          'Section 56 of Contracts Act 1950.',
-        ),
-        _buildClauseCard(
-          1,
-          'Indemnity Clause',
-          'One-sided financial risk burden.',
-          'Section 24 of Contracts Act 1950.',
-        ),
+        if (_analysisData?['clauses'] != null)
+          ...(_analysisData!['clauses'] as List).asMap().entries.map((entry) {
+            return _buildClauseCard(
+              entry.key,
+              entry.value['title'] ?? 'Unknown Clause',
+              entry.value['risk'] ?? 'Potential Risk detected',
+              entry.value['legalRef'] ?? 'No reference available',
+              isEn,
+            );
+          }).toList()
+        else
+          Text(isEn
+              ? "No significant risks found."
+              : "Tiada risiko ketara ditemui."),
         const SizedBox(height: 24),
         ElevatedButton(
           onPressed: () => setState(() => _currentState = 'upload'),
           style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF162235),
+            foregroundColor: Colors.white,
             minimumSize: const Size.fromHeight(50),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            backgroundColor: const Color(0xFF1A1F2C),
           ),
-          child: const Text('Back to Upload',
-              style: TextStyle(fontFamily: 'Poppins')),
+          child:
+              Text(isEn ? 'Analyze Another Document' : 'Analisis Dokumen Lain'),
         ),
       ],
     );
   }
 
   Widget _buildClauseCard(
-      int index, String title, String risk, String legalRef) {
-    bool isExpanded = _expandedIndex == index;
+      int index, String title, String risk, String legalRef, bool isEn) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ExpansionTile(
-        key: GlobalKey(),
-        initiallyExpanded: isExpanded,
+        initiallyExpanded: _expandedIndex == index,
         leading: const Icon(LucideIcons.alertCircle, color: Colors.orange),
-        title: Text(title,
-            style: const TextStyle(
-                fontWeight: FontWeight.w600, fontFamily: 'Poppins')),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Text(risk,
-            style: const TextStyle(
-                fontSize: 12, color: Colors.orange, fontFamily: 'Poppins')),
+            style: const TextStyle(fontSize: 12, color: Colors.orange)),
         children: [
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Relevant Legal Reference:',
-                  style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey,
-                      fontFamily: 'Poppins'),
+                Text(
+                  isEn
+                      ? 'Relevant Legal Reference:'
+                      : 'Rujukan Undang-undang Berkaitan:',
+                  style: const TextStyle(fontSize: 10, color: Colors.grey),
                 ),
                 Text(legalRef,
                     style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'Poppins')),
-                const SizedBox(height: 8),
-                const Text(
-                  'Consult a lawyer before signing this document.',
-                  style: TextStyle(
-                      fontSize: 11,
-                      fontStyle: FontStyle.italic,
-                      fontFamily: 'Poppins'),
-                ),
+                        fontSize: 12, fontWeight: FontWeight.w600)),
               ],
             ),
           ),
         ],
-        onExpansionChanged: (val) {
-          setState(() {
-            _expandedIndex = val ? index : null;
-          });
-        },
+        onExpansionChanged: (val) =>
+            setState(() => _expandedIndex = val ? index : null),
       ),
     );
   }

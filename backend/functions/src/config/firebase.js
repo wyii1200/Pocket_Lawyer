@@ -20,9 +20,11 @@ if (process.env.FUNCTIONS_EMULATOR === "true") {
   process.env.FIREBASE_AUTH_EMULATOR_HOST = "127.0.0.1:9099";
 }
 
+const projectId = process.env.GCLOUD_PROJECT || "demo-pocketlawyer";
+
 admin.initializeApp({
-  // Use a placeholder for local development
-  projectId: process.env.GCLOUD_PROJECT || "demo-pocketlawyer",
+  projectId: projectId,
+  storageBucket: `${projectId}.appspot.com`,
 });
 
 module.exports = {
