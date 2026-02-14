@@ -1,0 +1,11 @@
+query GetPublicLegalArticles @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public as it only retrieves public legal articles.") {
+      legalArticles(where: {isPublic: {eq: true}}) {
+        id
+        title
+        content
+        sourceUrl
+        legalTopic {
+          name
+        }
+      }
+    }

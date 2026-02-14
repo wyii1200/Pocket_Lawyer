@@ -1,0 +1,102 @@
+mutation CreateDemoData @transaction @auth(level: USER, insecureReason: "This is seed data and should only be run by authenticated users to initialize the database.") {
+  legalTopic_insertMany(data: [
+    {
+      id: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      name: "Employment Law",
+      description: "Legal topics related to employment, including contracts, workplace rights, and discrimination.",
+      keywords: ["employment", "labor", "workplace"]
+      createdAt: "2023-01-01T10:00:00Z"
+    },
+    {
+      id: "b2c3d4e5-f6a7-8901-2345-67890abcdef0",
+      name: "Contract Law",
+      description: "Principles governing agreements between parties, enforceability, and breaches.",
+      keywords: ["contract", "agreement", "legal binding"]
+      createdAt: "2023-01-02T11:00:00Z"
+    }
+  ])
+  legalArticle_insertMany(data: [
+    {
+      legalTopicId: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      title: "Understanding Employment Contracts",
+      content: "A detailed guide to the key clauses in employment contracts...",
+      isPublic: true,
+      sourceUrl: "https://example.com/employment-contracts",
+      createdAt: "2023-01-03T12:00:00Z",
+      updatedAt: "2023-01-03T12:00:00Z"
+    },
+    {
+      legalTopicId: "b2c3d4e5-f6a7-8901-2345-67890abcdef0",
+      title: "Basics of Contract Formation",
+      content: "Essential elements required for a valid and enforceable contract...",
+      isPublic: true,
+      sourceUrl: "https://example.com/contract-formation",
+      createdAt: "2023-01-04T13:00:00Z",
+      updatedAt: "2023-01-04T13:00:00Z"
+    }
+  ])
+  documentTemplate_insertMany(data: [
+    {
+      id: "c3d4e5f6-a7b8-9012-3456-7890abcdef01",
+      name: "Standard Employment Agreement",
+      description: "A template for a general employment agreement.",
+      type: "Employment",
+      category: "Contract",
+      contentSchema: "{\"title\":\"string\", \"employee_name\":\"string\"}",
+      createdAt: "2023-01-05T14:00:00Z"
+    },
+    {
+      id: "d4e5f6a7-b8c9-0123-4567-890abcdef012",
+      name: "Non-Disclosure Agreement (NDA)",
+      description: "A template for a non-disclosure agreement.",
+      type: "Confidentiality",
+      category: "Contract",
+      contentSchema: "{\"parties\":\"array\", \"confidential_info\":\"string\"}",
+      createdAt: "2023-01-06T15:00:00Z"
+    }
+  ])
+  user_insertMany(data: [
+    {
+      id: "e5f6a7b8-c9d0-1234-5678-90abcdef0123",
+      displayName: "Alice Smith",
+      email: "alice.smith@example.com",
+      photoUrl: "https://example.com/alice.jpg",
+      createdAt: "2023-01-07T16:00:00Z",
+      lastLogin: "2023-01-07T16:00:00Z"
+    },
+    {
+      id: "f6a7b8c9-d0e1-2345-6789-0abcdef01234",
+      displayName: "Bob Johnson",
+      email: "bob.johnson@example.com",
+      photoUrl: "https://example.com/bob.jpg",
+      createdAt: "2023-01-08T17:00:00Z",
+      lastLogin: "2023-01-08T17:00:00Z"
+    }
+  ])
+  userDocument_insertMany(data: [
+    {
+      userId: "e5f6a7b8-c9d0-1234-5678-90abcdef0123",
+      title: "Alice's Employment Contract",
+      documentType: "Employment Agreement",
+      category: "Contract",
+      storageUrl: "https://example.com/docs/alice-employment.pdf",
+      generatedData: "{\"employee_name\":\"Alice Smith\", \"start_date\":\"2023-02-01\"}",
+      isSensitive: true,
+      tags: ["employment", "contract", "personal"],
+      createdAt: "2023-01-09T18:00:00Z",
+      updatedAt: "2023-01-09T18:00:00Z"
+    },
+    {
+      userId: "f6a7b8c9-d0e1-2345-6789-0abcdef01234",
+      title: "Bob's NDA",
+      documentType: "NDA",
+      category: "Confidentiality",
+      storageUrl: "https://example.com/docs/bob-nda.pdf",
+      generatedData: "{\"parties\":[\"Bob Johnson\", \"Company X\"], \"purpose\":\"project alpha\"}",
+      isSensitive: true,
+      tags: ["nda", "confidentiality"],
+      createdAt: "2023-01-10T19:00:00Z",
+      updatedAt: "2023-01-10T19:00:00Z"
+    }
+  ])
+}

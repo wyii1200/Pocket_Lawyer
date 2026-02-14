@@ -43,3 +43,18 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Ignore ALL build folders anywhere (important for frontend folder)
+**/build/
+
+# Native build cache
+**/.cxx/
+
+# Flutter generated assets
+**/flutter_assets/
+
+# Gradle files
+.gradle/
+
+# Android local properties
+local.properties

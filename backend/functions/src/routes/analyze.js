@@ -10,6 +10,8 @@ const { db, storage } = require("../config/firebase");
 const { verifyAuth } = require("../middleware/auth");
 const { model } = require("../config/gemini");
 const pdfParse = require("pdf-parse");
+const vision = require("@google-cloud/vision"); // For OCR
+const client = new vision.ImageAnnotatorClient();
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 
@@ -27,11 +29,27 @@ exports.analyzeContract = onCall(async (request) => {
 
     const {filePath} = docSnap.data();
 
+    // Download file from Storage
     const file = storage.bucket().file(filePath);
     const [buffer] = await file.download();
 
-    const pdfData = await pdfParse(buffer);
-    const extractedText = pdfData.text;
+    let extractedText = "";
+
+    // --- 1. PDF extraction ---
+    if (fileType === "pdf") {
+      const pdfData = await pdfParse(buffer);
+      extractedText = pdfData.text;
+    }
+
+    // --- 2. Image extraction ---
+    else if (fileType === "image") {
+      const [result] = await client.textDetection(buffer);
+      const detections = result.textAnnotations;
+      extractedText = detections.length > 0 ? detections[0].description : "";
+    }
+
+    if (!extractedText) throw new Error("No text found in document");
+
 
     const prompt = `
     Analyze this contract.
