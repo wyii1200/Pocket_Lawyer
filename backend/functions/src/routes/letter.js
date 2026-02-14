@@ -5,8 +5,6 @@
  */
 
 
-
-
 const functions = require("firebase-functions");
 const { admin, db, storage } = require("../config/firebase");
 
@@ -92,58 +90,4 @@ exports.generateLetter = onCall(async (request) => {
   return { letterText };
 });
 
-
-
-
-/*exports.generateLetter = functions.https.onRequest(async (req, res) => {
-  try {
-    const { templateId, templateContent, userData } = req.body;
-
-    if (!userData) {
-      return res.status(400).json({ error: "userData is required" });
-    }
-
-    let letterText = templateContent;
-
-    // If no direct template content, try to fetch from mock templates
-    if (!letterText) {
-      if (!templateId) {
-        return res.status(400).json({ error: "Either templateId or templateContent is required" });
-      }
-      letterText = mockTemplates[templateId.toLowerCase()];
-      if (!letterText) {
-        return res.status(404).json({ 
-          error: `Template not found. Available templates: ${Object.keys(mockTemplates).join(', ')}` 
-        });
-      }
-    }
-
-    // Replace placeholders with userData
-    for (const key in userData) {
-      const regex = new RegExp(`{{${key}}}`, "g");
-      letterText = letterText.replace(regex, userData[key]);
-    }
-
-    // Try to save to Firestore if available
-    try {
-      await db.collection("letters").add({
-        templateId,
-        userData,
-        letterText,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-    } catch (dbError) {
-      console.warn("Could not save letter to Firestore:", dbError.message);
-    }
-
-    res.status(200).json({ 
-      letterText,
-      message: "Letter generated successfully"
-    });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
-  }
-});*/
 

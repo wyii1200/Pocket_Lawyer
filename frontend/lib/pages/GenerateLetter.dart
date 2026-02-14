@@ -33,7 +33,6 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
   final String _date = DateFormat('MMMM dd, yyyy').format(DateTime.now());
   String _letterType = 'complaint';
 
-  
   @override
   void initState() {
     super.initState();
@@ -46,6 +45,9 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
       _selectedLang = prefs.getString('app_language') ?? 'en';
     });
   }
+
+  
+
 
   Future<void> _handleGenerate() async {
     bool isEn = _selectedLang == 'en';
@@ -73,7 +75,7 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
               : _recipientNameController.text,
           'issue': _issueController.text,
           'date': _date,
-          'lang': _selectedLang,
+          //'lang': _selectedLang,
         }
       });
 
@@ -88,7 +90,14 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
       await HistoryService.saveHistory(
         type: "Letter Generation",
         summary: "${_letterType.toUpperCase()} Letter — ${_issueController.text}",
+      
+        metadata: {
+          'letterType': _letterType,
+          'recipientName': _recipientNameController.text,
+          'date': _date,
+        }
       );
+
     } catch (e) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -96,6 +105,8 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
       );
     }
   }
+
+
 
   Future<void> _downloadPdf() async {
     final pdf = pw.Document();

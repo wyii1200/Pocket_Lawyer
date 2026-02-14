@@ -154,6 +154,7 @@ class _KnowYourRightsPageState extends State<KnowYourRightsPage> {
                 },
               );
 
+            // Save to history when a card is expanded
               await HistoryService.saveHistory(
                 type: "Know Your Rights",
                 summary: right['title'],
