@@ -12,7 +12,28 @@ const { verifyAuth } = require("../middleware/auth");
 const getModel = require("../config/gemini");
 const pdfParse = require("pdf-parse");
 
-exports.uploadDocument = functions.https.onRequest(async (req, res) => {
+
+//change from onRequest to onCall for better error handling and auth support
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+
+exports.uploadDocument = onCall(async (request) => {
+  const { fileBase64 } = request.data;
+
+  if (!fileBase64) {
+    throw new HttpsError("invalid-argument", "fileBase64 is required");
+  }
+
+  const documentId = db.collection("documents").doc().id;
+
+  await db.collection("documents").doc(documentId).set({
+    status: "processing",
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  return { documentId, status: "processing" };
+});
+
+/*exports.uploadDocument = functions.https.onRequest(async (req, res) => {
   try {
     const { fileBase64 } = req.body; 
     if (!fileBase64) {
@@ -44,5 +65,5 @@ exports.uploadDocument = functions.https.onRequest(async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
-});
+});*/
 

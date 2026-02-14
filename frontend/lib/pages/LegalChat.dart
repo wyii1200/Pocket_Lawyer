@@ -37,7 +37,10 @@ class _LegalChatPageState extends State<LegalChatPage> {
       // Ensure your main.dart has: FirebaseFunctions.instance.useFunctionsEmulator('10.0.2.2', 5001);
       final result = await FirebaseFunctions.instance
           .httpsCallable('legalChat')
-          .call({'message': text});
+          .call({
+            'message': text,
+          });
+
 
       // 3. Add AI Response to UI
       setState(() {

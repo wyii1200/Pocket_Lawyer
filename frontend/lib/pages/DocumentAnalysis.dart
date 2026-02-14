@@ -25,33 +25,19 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
     setState(() => _currentState = 'loading');
 
     try {
-      // Convert file to base64
       final bytes = await file.readAsBytes();
       final base64Data = base64Encode(bytes);
 
-      // Replace with your deployed Cloud Function URL
-      final uri = Uri.parse('http://10.0.2.2:5001/pocketlawyer-ai-2025/us-central1/analyzeContract');
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('uploadDocument')
+          .call({
+            'fileBase64': base64Data,
+          });
 
-      final response = await http.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'fileData': base64Data,
-          'fileName': file.path.split('/').last,
-        }),
-      );
+      print(result.data);
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        setState(() {
-          _analysisResult = data['analysis'] ?? "No data";
-          _currentState = 'result';
-        });
-      } else {
-        throw Exception('Server Error: ${response.statusCode}');
-      }
+      setState(() => _currentState = 'result');
+
     } catch (e) {
       setState(() => _currentState = 'upload');
       ScaffoldMessenger.of(context)

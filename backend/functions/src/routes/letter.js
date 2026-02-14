@@ -4,6 +4,9 @@
  * using Google Generative AI, and stores the generated letters in Firestore.
  */
 
+
+
+
 const functions = require("firebase-functions");
 const { admin, db, storage } = require("../config/firebase");
 
@@ -62,7 +65,37 @@ Party 1: _________________
 Party 2: _________________`
 };
 
-exports.generateLetter = functions.https.onRequest(async (req, res) => {
+
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+
+exports.generateLetter = onCall(async (request) => {
+  const { templateId, templateContent, userData } = request.data;
+
+  if (!userData) {
+    throw new HttpsError("invalid-argument", "userData is required");
+  }
+
+  let letterText = templateContent;
+
+  if (!letterText) {
+    letterText = mockTemplates[templateId?.toLowerCase()];
+    if (!letterText) {
+      throw new HttpsError("not-found", "Template not found");
+    }
+  }
+
+  for (const key in userData) {
+    const regex = new RegExp(`{{${key}}}`, "g");
+    letterText = letterText.replace(regex, userData[key]);
+  }
+
+  return { letterText };
+});
+
+
+
+
+/*exports.generateLetter = functions.https.onRequest(async (req, res) => {
   try {
     const { templateId, templateContent, userData } = req.body;
 
@@ -112,5 +145,5 @@ exports.generateLetter = functions.https.onRequest(async (req, res) => {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
-});
+});*/
 
