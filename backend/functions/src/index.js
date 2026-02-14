@@ -4,6 +4,9 @@
  * such as document upload, contract analysis, legal chat, and letter generation.
  */
 
+require("dotenv").config();
+
+
 const {db} = require("./config/firebase");
 const functions = require("firebase-functions");
 

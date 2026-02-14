@@ -7,9 +7,9 @@
 const admin = require("firebase-admin");
 const functions = require("firebase-functions");
 const { db, storage } = require("../config/firebase");
-const { verifyAuth } = require("../middleware/auth");
-const getModel = require("../config/gemini");
-const pdfParse = require("pdf-parse");
+//const { verifyAuth } = require("../middleware/auth");
+//const getModel = require("../config/gemini");
+//const pdfParse = require("pdf-parse");
 
 exports.legalChat = functions.https.onRequest(async (req, res) => {
   try {

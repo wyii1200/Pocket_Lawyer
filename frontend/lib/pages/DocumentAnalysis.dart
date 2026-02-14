@@ -1,12 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-
+import 'package:firebase_storage/firebase_storage.dart';
 
 String _analysisResult = ""; // Variable to store the JS response
 
@@ -21,41 +20,60 @@ class DocumentAnalysisPage extends StatefulWidget {
 
 class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
   
+  Future<String> uploadFileToStorage(File file) async {
+  final fileName = DateTime.now().millisecondsSinceEpoch.toString();
+    final ref = FirebaseStorage.instance.ref().child("documents/$fileName.pdf");
+
+    await ref.putFile(file);
+
+    return ref.fullPath;
+  }
+
   Future<void> _sendFileToBackend(File file) async {
     setState(() => _currentState = 'loading');
 
     try {
-      final bytes = await file.readAsBytes();
-      final base64Data = base64Encode(bytes);
+      final filePath = await uploadFileToStorage(file);
+
+      final docRef =
+          await FirebaseFirestore.instance.collection("documents").add({
+        "filePath": filePath,
+        "status": "processing",
+        "createdAt": FieldValue.serverTimestamp(),
+      });
+
+      final documentId = docRef.id;
 
       final result = await FirebaseFunctions.instance
-          .httpsCallable('uploadDocument')
+          .httpsCallable('analyzeContract')
           .call({
-            'fileBase64': base64Data,
-          });
+        "documentId": documentId,
+      });
 
-      print(result.data);
-
-      setState(() => _currentState = 'result');
+      setState(() {
+        _analysisResult = result.data['analysis'].toString();
+        _currentState = 'result';
+      });
 
     } catch (e) {
       setState(() => _currentState = 'upload');
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Backend Error: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
     }
   }
 
-    Future<void> _pickPDFAndAnalyze() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf'],
-    );
+      Future<void> _pickPDFAndAnalyze() async {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
 
-    if (result != null && result.files.single.path != null) {
-      File file = File(result.files.single.path!);
-      await _sendFileToBackend(file);
+      if (result != null && result.files.single.path != null) {
+        File file = File(result.files.single.path!);
+        await _sendFileToBackend(file);
+      }
     }
-  }
 
   Future<void> _scanCameraAndAnalyze() async {
       final picker = ImagePicker();

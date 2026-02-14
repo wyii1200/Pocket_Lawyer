@@ -5,76 +5,89 @@
 */
 
 const admin = require("firebase-admin");
-const functions = require("firebase-functions");
+//const functions = require("firebase-functions");
 const { db, storage } = require("../config/firebase");
-const { verifyAuth } = require("../middleware/auth");
-const getModel = require("../config/gemini");
+//const { verifyAuth } = require("../middleware/auth");
+//const getModel = require("../config/gemini");
 const pdfParse = require("pdf-parse");
 
-exports.analyzeContract = functions.https.onRequest(async (req, res) => {
+
+//change from onRequest to onCall for better error handling and auth support
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+
+
+// quick debug test
+exports.analyzeContract = onCall(async (request) => {
+  console.log("ANALYZE CALLED");
+  return { message: "Function working!" };
+});
+
+
+
+
+
+/*exports.analyzeContract = onCall(async (request) => {
   try {
-    const { documentId, contractText } = req.body;
+    const { documentId, contractText } = request.data;
 
     if (!documentId && !contractText) {
-      return res.status(400).json({ error: "Either documentId or contractText is required" });
+      throw new HttpsError(
+        "invalid-argument",
+        "Either documentId or contractText is required"
+      );
     }
 
     let extractedText = contractText;
+    
+    console.log("Incoming data:", request.data);
 
-    // If documentId is provided, try to fetch from Firestore
+  
     if (!extractedText && documentId) {
-      try {
-        const docRef = db.collection("documents").doc(documentId);
-        const docSnap = await docRef.get();
+      const docRef = db.collection("documents").doc(documentId);
+      const docSnap = await docRef.get();
 
-        if (!docSnap.exists) {
-          return res.status(404).json({ error: "Document not found" });
-        }
-
-        const { filePath } = docSnap.data();
-        const file = storage.bucket().file(filePath);
-        const [buffer] = await file.download();
-
-        const pdfData = await pdfParse(buffer);
-        extractedText = pdfData.text;
-      } catch (fileError) {
-        console.warn("Could not fetch from Storage:", fileError.message);
-        // Continue with mock analysis
-        extractedText = "Sample contract text for analysis";
+      if (!docSnap.exists) {
+        throw new HttpsError("not-found", "Document not found");
       }
+
+      const { filePath } = docSnap.data();
+      const file = storage.bucket().file(filePath);
+      const [buffer] = await file.download();
+
+      const pdfData = await pdfParse(buffer);
+      extractedText = pdfData.text;
+      
     }
 
-    // Mock analysis based on contract text
+
     const mockAnalysis = {
-      summary: "This is a standard contract agreement between parties with defined terms and conditions.",
+      summary:
+        "This is a standard contract agreement between parties with defined terms and conditions.",
       riskyClauses: [
         "Limitation of Liability clause may restrict your remedies",
-        "Termination clause allows either party to exit with 30 days notice"
+        "Termination clause allows either party to exit with 30 days notice",
       ],
       riskLevel: "medium",
-      explanation: "The contract contains typical commercial terms. The main risks involve liability limitations and termination conditions. Review with legal counsel before signing."
+      explanation:
+        "The contract contains typical commercial terms. The main risks involve liability limitations and termination conditions.",
     };
 
-    try {
-      // Try to save analysis to Firestore if documentId is provided
-      if (documentId) {
-        await db.collection("documents").doc(documentId).update({
-          status: "completed",
-          analysis: JSON.stringify(mockAnalysis),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-      }
-    } catch (dbError) {
-      console.warn("Could not save analysis to Firestore:", dbError.message);
+    if (documentId) {
+      await db.collection("documents").doc(documentId).update({
+        status: "completed",
+        analysis: mockAnalysis,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
     }
 
-    res.status(200).json({
+    return {
       status: "completed",
-      analysis: mockAnalysis
-    });
+      analysis: mockAnalysis,
+    };
+
   } catch (error) {
     console.error("Analyze function error:", error);
-    res.status(500).json({ error: error.message });
+    throw new HttpsError("internal", error.message);
   }
 });
-
+*/
