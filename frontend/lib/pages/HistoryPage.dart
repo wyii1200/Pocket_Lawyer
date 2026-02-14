@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HistoryPage extends StatefulWidget {
   const HistoryPage({super.key});
@@ -14,26 +15,44 @@ class _HistoryPageState extends State<HistoryPage> {
   
   String _searchQuery = "";
   String _selectedCategory = "All";
+  String _selectedLang = 'en';
   final TextEditingController _searchController = TextEditingController();
 
-  final List<String> _categories = [
-    "All",
-    "Document Analysis",
-    "Letter Generation"
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadLanguage();
+  }
+
+  Future<void> _loadLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _selectedLang = prefs.getString('app_language') ?? 'en';
+    });
+  }
 
 
   @override
   Widget build(BuildContext context) {
+    bool isEn = _selectedLang == 'en';
     String uid = FirebaseAuth.instance.currentUser!.uid;
+
+    final List<String> categories = [
+      isEn ? "All" : "Semua",
+      "Document Analysis",
+      "Letter Generation"
+    ];
+
+    String displayCategory =
+        _selectedCategory == "Semua" ? "All" : _selectedCategory;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F4F9),
       appBar: AppBar(
-        title: const Text('History'),
+        title: Text(isEn ? 'History' : 'Sejarah'),
         centerTitle: true,
         backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1A1F2C),
+        foregroundColor: const Color(0xFF162235),
         elevation: 1,
       ),
       body: Column(
@@ -46,7 +65,9 @@ class _HistoryPageState extends State<HistoryPage> {
               onChanged: (value) =>
                   setState(() => _searchQuery = value.toLowerCase()),
               decoration: InputDecoration(
-                hintText: "Search your legal history...",
+                hintText: isEn
+                    ? "Search your legal history..."
+                    : "Cari sejarah undang-undang...",
                 prefixIcon: const Icon(LucideIcons.search, size: 20),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
@@ -73,7 +94,7 @@ class _HistoryPageState extends State<HistoryPage> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: Row(
-              children: _categories.map((category) {
+              children: categories.map((category) {
                 bool isSelected = _selectedCategory == category;
                 return Padding(
                   padding: const EdgeInsets.only(right: 8),
@@ -84,10 +105,10 @@ class _HistoryPageState extends State<HistoryPage> {
                       setState(() => _selectedCategory = category);
                     },
                     backgroundColor: Colors.white,
-                    selectedColor: const Color(0xFF1A1F2C).withOpacity(0.1),
+                    selectedColor: const Color(0xFF162235).withOpacity(0.1),
                     labelStyle: TextStyle(
                       color: isSelected
-                          ? const Color(0xFF1A1F2C)
+                          ? const Color(0xFF162235)
                           : Colors.grey[600],
                       fontWeight:
                           isSelected ? FontWeight.bold : FontWeight.normal,
@@ -97,7 +118,7 @@ class _HistoryPageState extends State<HistoryPage> {
                         borderRadius: BorderRadius.circular(20)),
                     side: BorderSide(
                         color: isSelected
-                            ? const Color(0xFF1A1F2C)
+                            ? const Color(0xFF162235)
                             : Colors.transparent),
                     showCheckmark: false,
                   ),
@@ -121,10 +142,12 @@ class _HistoryPageState extends State<HistoryPage> {
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(child: Text("No records found."));
+                  return Center(
+                    child: Text(
+                        isEn ? "No records found." : "Tiada rekod dijumpai."),
+                  );
                 }
 
-                // Apply both Search and Category filters
                 final filteredDocs = snapshot.data!.docs.where((doc) {
                   final type = doc['type'].toString();
                   final summary = doc['summary'].toString().toLowerCase();
@@ -132,14 +155,18 @@ class _HistoryPageState extends State<HistoryPage> {
                   bool matchesSearch =
                       type.toLowerCase().contains(_searchQuery) ||
                           summary.contains(_searchQuery);
+
                   bool matchesCategory =
-                      _selectedCategory == "All" || type == _selectedCategory;
+                      displayCategory == "All" || type == displayCategory;
 
                   return matchesSearch && matchesCategory;
                 }).toList();
 
                 if (filteredDocs.isEmpty) {
-                  return const Center(child: Text("No matches found."));
+                  return Center(
+                      child: Text(isEn
+                          ? "No matches found."
+                          : "Tiada padanan ditemui."));
                 }
 
                 return ListView.builder(
@@ -147,7 +174,7 @@ class _HistoryPageState extends State<HistoryPage> {
                   itemCount: filteredDocs.length,
                   itemBuilder: (context, index) {
                     final item = filteredDocs[index];
-                    return _buildDismissibleItem(item, uid);
+                    return _buildDismissibleItem(item, uid, isEn);
                   },
                 );
               },
@@ -158,7 +185,7 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  Widget _buildDismissibleItem(DocumentSnapshot item, String uid) {
+  Widget _buildDismissibleItem(DocumentSnapshot item, String uid, bool isEn) {
     return Dismissible(
       key: Key(item.id),
       direction: DismissDirection.endToStart,
@@ -179,13 +206,15 @@ class _HistoryPageState extends State<HistoryPage> {
             .collection('history')
             .doc(item.id)
             .delete();
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text("Entry deleted")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isEn ? "Entry deleted" : "Entri dipadam")),
+        );
       },
       child: _buildHistoryItem(
         type: item['type'],
         summary: item['summary'],
         date: item['createdAt'] ?? Timestamp.now(),
+        isEn: isEn,
       ),
     );
   }
@@ -193,7 +222,8 @@ class _HistoryPageState extends State<HistoryPage> {
   Widget _buildHistoryItem(
       {required String type,
       required String summary,
-      required Timestamp date}) {
+      required Timestamp date,
+      required bool isEn}) {
     DateTime dt = date.toDate();
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -216,16 +246,21 @@ class _HistoryPageState extends State<HistoryPage> {
                 ? LucideIcons.fileSearch
                 : LucideIcons.fileText,
             size: 20,
-            color: const Color(0xFF1A1F2C),
+            color: const Color(0xFF162235),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(type,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 14)),
+                Text(
+                  // Localize the type label if necessary
+                  type == "Document Analysis"
+                      ? (isEn ? "Document Analysis" : "Analisis Dokumen")
+                      : (isEn ? "Letter Generation" : "Penjanaan Surat"),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 14),
+                ),
                 const SizedBox(height: 4),
                 Text(summary,
                     maxLines: 2,

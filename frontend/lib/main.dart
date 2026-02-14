@@ -6,10 +6,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 
 import 'pages/Login.dart';
 import 'pages/SignUp.dart';
+import 'pages/ForgotPassword.dart';
+import 'pages/Onboarding.dart';
 import 'pages/Dashboard.dart';
 import 'pages/DocumentAnalysis.dart';
 import 'pages/LegalChat.dart';
@@ -27,12 +30,10 @@ Future<void> main() async {
 
   if (kDebugMode) {
     String host = kIsWeb ? 'localhost' : '10.0.2.2';
-
     await FirebaseAuth.instance.useAuthEmulator(host, 9099);
     FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
     FirebaseStorage.instance.useStorageEmulator(host, 9199);
     FirebaseFunctions.instance.useFunctionsEmulator(host, 5001);
-
     debugPrint("Running in Debug Mode: Connected to Firebase Emulators");
   }
 
@@ -41,6 +42,25 @@ Future<void> main() async {
 
 class PocketLawyerApp extends StatelessWidget {
   const PocketLawyerApp({super.key});
+
+  Future<Widget> _getLandingPage() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const LoginPage();
+
+    final prefs = await SharedPreferences.getInstance();
+
+    if (!prefs.containsKey('app_language')) {
+      await prefs.setString('app_language', 'en');
+    }
+
+    final bool seenOnboarding = prefs.getBool('seenOnboarding') ?? false;
+
+    if (seenOnboarding) {
+      return const MobileLayout();
+    } else {
+      return const OnboardingPage();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,17 +91,29 @@ class PocketLawyerApp extends StatelessWidget {
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-                body: Center(child: CircularProgressIndicator()));
+            return const LoadingSplashScreen();
           }
+
           if (snapshot.hasData) {
-            return const MobileLayout();
+            return FutureBuilder<Widget>(
+              future: _getLandingPage(),
+              builder: (context, innerSnapshot) {
+                if (innerSnapshot.hasData) {
+                  return innerSnapshot.data!;
+                }
+                return const LoadingSplashScreen();
+              },
+            );
           }
+
           return const LoginPage();
         },
       ),
       routes: {
+        '/login': (context) => const LoginPage(),
         '/signup': (context) => const SignUpPage(),
+        '/forgot-password': (context) => const ForgotPasswordPage(),
+        '/onboarding': (context) => const OnboardingPage(),
         '/main': (context) => const MobileLayout(),
         '/dashboard': (context) => const DashboardPage(),
         '/analyze': (context) => const DocumentAnalysisPage(),
@@ -91,6 +123,31 @@ class PocketLawyerApp extends StatelessWidget {
         '/profile': (context) => const ProfilePage(),
         '/rights': (context) => const KnowYourRightsPage(),
       },
+    );
+  }
+}
+
+class LoadingSplashScreen extends StatelessWidget {
+  const LoadingSplashScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF162235),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Using the scale icon for the splash screen
+            const Icon(Icons.scale, color: Colors.white, size: 80),
+            const SizedBox(height: 32),
+            const CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 3,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

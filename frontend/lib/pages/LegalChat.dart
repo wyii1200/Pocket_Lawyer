@@ -4,6 +4,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import '../services/history_service.dart';
 
 
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Message {
   final String role;
@@ -22,24 +23,46 @@ class LegalChatPage extends StatefulWidget {
 
 class _LegalChatPageState extends State<LegalChatPage> {
   final TextEditingController _inputController = TextEditingController();
-  final ScrollController _scrollController = ScrollController(); // Added for auto-scroll
-  
-  final List<Message> _messages = [
-    Message(
-      role: 'ai',
-      content: 'Hello! I\'m your legal assistant. How can I help you today? Please note that I provide general legal information, not professional legal advice.',
-    ),
-  ];
-  
+  final ScrollController _scrollController = ScrollController();
+  String _selectedLang = 'en';
+
+  final List<Message> _messages = [];
   bool _isTyping = false;
 
-  final List<String> _quickQuestions = [
-    "What are my rights as a tenant?",
-    "How to report a workplace dispute?",
-    "Can a contract be terminated early?"
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadLanguageAndWelcome();
+  }
 
-  // Logic to scroll to the bottom of the list
+  Future<void> _loadLanguageAndWelcome() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _selectedLang = prefs.getString('app_language') ?? 'en';
+      bool isEn = _selectedLang == 'en';
+      _messages.add(Message(
+        role: 'ai',
+        content: isEn
+            ? 'Hello! I\'m your legal assistant. How can I help you today? Please note that I provide general legal information, not professional legal advice.'
+            : 'Helo! Saya pembantu undang-undang anda. Bagaimanakah saya boleh membantu anda hari ini? Sila ambil perhatian bahawa saya menyediakan maklumat undang-undang am, bukan nasihat undang-undang profesional.',
+      ));
+    });
+  }
+
+  List<String> _getQuickQuestions(bool isEn) {
+    return isEn
+        ? [
+            "What are my rights as a tenant?",
+            "How to report a workplace dispute?",
+            "Can a contract be terminated early?"
+          ]
+        : [
+            "Apakah hak saya sebagai penyewa?",
+            "Cara melapor pertikaian tempat kerja?",
+            "Bolehkah kontrak ditamatkan awal?"
+          ];
+  }
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -65,14 +88,17 @@ class _LegalChatPageState extends State<LegalChatPage> {
     try {
       final result = await FirebaseFunctions.instance
           .httpsCallable('legalChat')
-          .call({'message': text});
+          .call({'message': text, 'lang': _selectedLang});
 
       setState(() {
         _isTyping = false;
         _messages.add(Message(
           role: 'ai',
-          content: result.data['reply'] ?? 'I am sorry, I could not process that.',
-          legalRef: result.data['legalRef'] ?? 'General Malaysian Law principles',
+          content: result.data['reply'] ??
+              (_selectedLang == 'en'
+                  ? 'I could not process that.'
+                  : 'Saya tidak dapat memprosesnya.'),
+          legalRef: result.data['legalRef'],
         ));
       });
 
@@ -96,7 +122,9 @@ class _LegalChatPageState extends State<LegalChatPage> {
         _isTyping = false;
         _messages.add(Message(
           role: 'ai',
-          content: 'Error connecting to legal assistant. Please check your connection.',
+          content: _selectedLang == 'en'
+              ? 'Error connecting. Check connection.'
+              : 'Ralat sambungan. Semak talian internet.',
         ));
       });
       _scrollToBottom();
@@ -105,6 +133,8 @@ class _LegalChatPageState extends State<LegalChatPage> {
 
   @override
   Widget build(BuildContext context) {
+    bool isEn = _selectedLang == 'en';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF1F4F9),
       appBar: AppBar(
@@ -112,35 +142,38 @@ class _LegalChatPageState extends State<LegalChatPage> {
           icon: const Icon(LucideIcons.arrowLeft),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Legal Chatbot',
-          style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600),
+        title: Text(
+          isEn ? 'Legal Chatbot' : 'Sembang Undang-undang',
+          style: const TextStyle(
+              fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 18),
         ),
         centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(LucideIcons.trash2, size: 20),
-            onPressed: () => setState(() => _messages.removeRange(1, _messages.length)),
-            tooltip: 'Clear Chat',
+            onPressed: () =>
+                setState(() => _messages.removeRange(1, _messages.length)),
+            tooltip: isEn ? 'Clear Chat' : 'Padam Sembang',
           )
         ],
         backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF1A1F2C),
+        foregroundColor: const Color(0xFF162235),
         elevation: 1,
       ),
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
-              controller: _scrollController, // Attach controller
+              controller: _scrollController,
               padding: const EdgeInsets.all(16),
               itemCount: _messages.length,
-              itemBuilder: (context, index) => _buildChatBubble(_messages[index]),
+              itemBuilder: (context, index) =>
+                  _buildChatBubble(_messages[index]),
             ),
           ),
-          if (_messages.length == 1) _buildQuickQuestions(),
+          if (_messages.length == 1) _buildQuickQuestions(isEn),
           if (_isTyping) _buildTypingIndicator(),
-          _buildInputArea(),
+          _buildInputArea(isEn),
         ],
       ),
     );
@@ -155,7 +188,7 @@ class _LegalChatPageState extends State<LegalChatPage> {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isUser ? const Color(0xFF1A1F2C) : Colors.white,
+          color: isUser ? const Color(0xFF162235) : Colors.white,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
@@ -187,7 +220,7 @@ class _LegalChatPageState extends State<LegalChatPage> {
               const Divider(height: 1, color: Color(0xFFE2E8F0)),
               const SizedBox(height: 4),
               Text(
-                "Reference: ${msg.legalRef}",
+                "${_selectedLang == 'en' ? 'Reference' : 'Rujukan'}: ${msg.legalRef}",
                 style: const TextStyle(
                     fontSize: 10,
                     color: Colors.blueGrey,
@@ -201,15 +234,16 @@ class _LegalChatPageState extends State<LegalChatPage> {
     );
   }
 
-  Widget _buildQuickQuestions() {
+  Widget _buildQuickQuestions(bool isEn) {
+    final questions = _getQuickQuestions(isEn);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Quick Questions:',
-            style: TextStyle(
+          Text(
+            isEn ? 'Quick Questions:' : 'Soalan Pantas:',
+            style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: Colors.black54,
@@ -220,11 +254,12 @@ class _LegalChatPageState extends State<LegalChatPage> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _quickQuestions.map((question) {
+            children: questions.map((question) {
               return InkWell(
                 onTap: () => _sendMessage(question),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
@@ -234,7 +269,7 @@ class _LegalChatPageState extends State<LegalChatPage> {
                     question,
                     style: const TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF1A1F2C),
+                      color: Color(0xFF162235),
                       fontFamily: 'Poppins',
                     ),
                   ),
@@ -249,44 +284,30 @@ class _LegalChatPageState extends State<LegalChatPage> {
 
   Widget _buildTypingIndicator() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.only(left: 20, bottom: 12),
       child: Row(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            margin: const EdgeInsets.symmetric(horizontal: 2),
-            decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.6),
-              shape: BoxShape.circle,
-            ),
-          ),
-          Container(
-            width: 8,
-            height: 8,
-            margin: const EdgeInsets.symmetric(horizontal: 2),
-            decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.6),
-              shape: BoxShape.circle,
-            ),
-          ),
-          Container(
-            width: 8,
-            height: 8,
-            margin: const EdgeInsets.symmetric(horizontal: 2),
-            decoration: BoxDecoration(
-              color: Colors.grey.withOpacity(0.6),
-              shape: BoxShape.circle,
-            ),
-          ),
-        ],
+        children: List.generate(
+            3,
+            (index) => Container(
+                  width: 6,
+                  height: 6,
+                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withOpacity(0.6),
+                    shape: BoxShape.circle,
+                  ),
+                )),
       ),
     );
   }
 
-  Widget _buildInputArea() {
+  Widget _buildInputArea(bool isEn) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: MediaQuery.of(context).padding.bottom + 16),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -302,22 +323,36 @@ class _LegalChatPageState extends State<LegalChatPage> {
           Expanded(
             child: TextField(
               controller: _inputController,
+              onSubmitted: _sendMessage,
               decoration: InputDecoration(
-                hintText: 'Ask a legal question...',
-                hintStyle: const TextStyle(color: Colors.grey),
+                hintText: isEn
+                    ? 'Ask a legal question...'
+                    : 'Tanya soalan undang-undang...',
+                hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF162235)),
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           Container(
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1F2C),
-              borderRadius: BorderRadius.circular(8),
+              color: const Color(0xFF162235),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: IconButton(
               icon: const Icon(LucideIcons.send, size: 20),
