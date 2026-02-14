@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import '../services/history_service.dart';
+
 
 class KnowYourRightsPage extends StatefulWidget {
   const KnowYourRightsPage({super.key});
@@ -50,6 +52,7 @@ class _KnowYourRightsPageState extends State<KnowYourRightsPage> {
           'The Contracts Act 1950 establishes that valid contracts require offer, acceptance, and consideration. Section 24 states unlawful agreements are void.',
     },
   ];
+  
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +69,41 @@ class _KnowYourRightsPageState extends State<KnowYourRightsPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(LucideIcons.arrowLeft),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () async {
+            if (_expandedIndex != null) {
+              final right = _rights[_expandedIndex!];
+
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: Text(right['title']),
+                    content: Text(right['summary']),
+                    actions: [
+                      TextButton(
+                        child: const Text("Close"),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  );
+                },
+              );
+
+              await HistoryService.saveHistory(
+                type: "Know Your Rights",
+                summary: right['title'],
+                metadata: {
+                  "act": right['act'],
+                  "summary": right['summary'],
+                  "details": right['details'],
+                },
+              );
+            } else {
+              Navigator.pop(context); // fallback if nothing expanded
+            }
+          }
+
+
         ),
         title: const Text('Know Your Rights'),
         centerTitle: true,

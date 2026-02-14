@@ -11,7 +11,53 @@ const { db, storage } = require("../config/firebase");
 //const getModel = require("../config/gemini");
 //const pdfParse = require("pdf-parse");
 
-exports.legalChat = functions.https.onRequest(async (req, res) => {
+
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+const { generateAIResponse } = require("../services/geminiService");
+
+exports.legalChat = functions.https.onCall(async (data, context) => {
+  try {
+    const { message } = data;
+
+    if (!message) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Message is required"
+      );
+    }
+
+    const prompt = `
+You are a professional Malaysian legal assistant.
+
+Provide:
+- Clear explanation
+- Mention relevant Malaysian Acts if applicable
+- Keep language simple
+- Add a short legal reference line at the end
+
+User Question:
+${message}
+`;
+
+    const aiReply = await generateAIResponse(prompt);
+
+    return {
+      reply: aiReply,
+      legalRef: "Malaysian Legal Framework"
+    };
+
+  } catch (error) {
+    console.error("legalChat error:", error);
+    throw new functions.https.HttpsError(
+      "internal",
+      error.message
+    );
+  }
+});
+
+
+/*exports.legalChat = functions.https.onRequest(async (req, res) => {
   try {
     const { message } = req.body;
 
@@ -51,4 +97,4 @@ exports.legalChat = functions.https.onRequest(async (req, res) => {
     console.error("Chat function error:", error);
     res.status(500).json({ error: error.message });
   }
-});
+});*/

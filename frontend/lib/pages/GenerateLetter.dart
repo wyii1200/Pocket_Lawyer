@@ -6,6 +6,12 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+import '../services/history_service.dart';
+
+
 
 class GenerateLetterPage extends StatefulWidget {
   const GenerateLetterPage({super.key});
@@ -24,6 +30,8 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
   final _issueController = TextEditingController();
   final String _date = DateFormat('MMMM dd, yyyy').format(DateTime.now());
   String _letterType = 'complaint';
+
+  
 
   Future<void> _handleGenerate() async {
     // Basic Form Validation
@@ -59,6 +67,12 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
         _showPreview = true;
         _isLoading = false;
       });
+      
+      //save history to firestore
+      await HistoryService.saveHistory(
+        type: "Letter Generation",
+        summary: "${_letterType.toUpperCase()} Letter — ${_issueController.text}",
+      );
     } catch (e) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -95,6 +109,8 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
     }
   }
 
+  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -128,6 +144,10 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
         ),
       ),
     );
+
+
+
+    
   }
 
   Widget _buildForm() {

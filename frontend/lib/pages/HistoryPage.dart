@@ -11,6 +11,7 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
+  
   String _searchQuery = "";
   String _selectedCategory = "All";
   final TextEditingController _searchController = TextEditingController();
@@ -20,6 +21,7 @@ class _HistoryPageState extends State<HistoryPage> {
     "Document Analysis",
     "Letter Generation"
   ];
+
 
   @override
   Widget build(BuildContext context) {

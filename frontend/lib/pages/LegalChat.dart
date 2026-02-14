@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import '../services/history_service.dart';
+
+
 
 class Message {
   final String role;
@@ -72,7 +75,22 @@ class _LegalChatPageState extends State<LegalChatPage> {
           legalRef: result.data['legalRef'] ?? 'General Malaysian Law principles',
         ));
       });
+
       _scrollToBottom();
+
+      //save history to firestore
+      await HistoryService.saveHistory(
+        type: "Legal Chat",
+        summary: text.length > 40
+            ? "${text.substring(0, 40)}..."
+            : text,
+        metadata: {
+          "question": text,
+          "reply": result.data['reply'],
+          "legalRef": result.data['legalRef'],
+        },
+      );
+
     } catch (e) {
       setState(() {
         _isTyping = false;
