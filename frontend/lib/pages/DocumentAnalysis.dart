@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DocumentAnalysisPage extends StatefulWidget {
   const DocumentAnalysisPage({super.key});
@@ -18,10 +19,23 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
   String _currentState = 'upload';
   Map<String, dynamic>? _analysisData;
   int? _expandedIndex;
+  String _selectedLang = 'en';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLanguage();
+  }
+
+  Future<void> _loadLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _selectedLang = prefs.getString('app_language') ?? 'en';
+    });
+  }
 
   Future<String> uploadFileToStorage(File file) async {
     final fileName = DateTime.now().millisecondsSinceEpoch.toString();
-    // Use .pdf for files or .jpg for camera scans
     final extension = file.path.endsWith('.pdf') ? 'pdf' : 'jpg';
     final ref =
         FirebaseStorage.instance.ref().child("documents/$fileName.$extension");
@@ -36,7 +50,6 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
     try {
       final filePath = await uploadFileToStorage(file);
 
-      // Save metadata to Firestore
       final docRef =
           await FirebaseFirestore.instance.collection("documents").add({
         "filePath": filePath,
@@ -44,13 +57,11 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
         "createdAt": FieldValue.serverTimestamp(),
       });
 
-      // Call Firebase Function
       final result = await FirebaseFunctions.instance
           .httpsCallable('analyzeContract')
           .call({"documentId": docRef.id});
 
       setState(() {
-        // Assume backend returns a Map with 'riskLevel', 'clauses', and 'summary'
         _analysisData = Map<String, dynamic>.from(result.data);
         _currentState = 'result';
       });
@@ -84,6 +95,8 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
 
   @override
   Widget build(BuildContext context) {
+    bool isEn = _selectedLang == 'en';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
@@ -91,7 +104,7 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
           icon: const Icon(LucideIcons.arrowLeft),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Analyze Document'),
+        title: Text(isEn ? 'Analyze Document' : 'Analisis Dokumen'),
         centerTitle: true,
       ),
       body: AnimatedSwitcher(
@@ -99,25 +112,25 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
         child: SingleChildScrollView(
           key: ValueKey(_currentState),
           padding: const EdgeInsets.all(24),
-          child: _buildContent(),
+          child: _buildContent(isEn),
         ),
       ),
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(bool isEn) {
     switch (_currentState) {
       case 'loading':
-        return _buildLoadingState();
+        return _buildLoadingState(isEn);
       case 'result':
-        return _buildResultState();
+        return _buildResultState(isEn);
       default:
-        return _buildUploadState();
+        return _buildUploadState(isEn);
     }
   }
 
   // --- 1. UPLOAD STATE ---
-  Widget _buildUploadState() {
+  Widget _buildUploadState(bool isEn) {
     return Column(
       children: [
         const SizedBox(height: 40),
@@ -127,10 +140,16 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
           child: Icon(LucideIcons.upload, size: 40, color: Color(0xFF1A1F2C)),
         ),
         const SizedBox(height: 20),
-        const Text('Upload your legal document',
-            style: TextStyle(fontSize: 16)),
-        const Text('GUIDED BY CONTRACTS ACT 1950',
-            style: TextStyle(fontSize: 10, color: Colors.grey)),
+        Text(
+          isEn
+              ? 'Upload your legal document'
+              : 'Muat naik dokumen undang-undang anda',
+          style: const TextStyle(fontSize: 16),
+        ),
+        const Text(
+          'GUIDED BY CONTRACTS ACT 1950',
+          style: TextStyle(fontSize: 10, color: Colors.grey),
+        ),
         const SizedBox(height: 40),
         Row(
           children: [
@@ -138,7 +157,14 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
               child: ElevatedButton.icon(
                 onPressed: _pickPDFAndAnalyze,
                 icon: const Icon(LucideIcons.file),
-                label: const Text('Upload PDF'),
+                label: Text(isEn ? 'Upload PDF' : 'Muat Naik PDF'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF162235),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(50),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -146,7 +172,12 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
               child: OutlinedButton.icon(
                 onPressed: _scanCameraAndAnalyze,
                 icon: const Icon(LucideIcons.camera),
-                label: const Text('Camera Scan'),
+                label: Text(isEn ? 'Camera Scan' : 'Imbasan Kamera'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
               ),
             ),
           ],
@@ -156,20 +187,22 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
   }
 
   // --- 2. LOADING STATE ---
-  Widget _buildLoadingState() {
+  Widget _buildLoadingState(bool isEn) {
     return Column(
       children: [
         const SizedBox(height: 100),
         const CircularProgressIndicator(color: Color(0xFF1A1F2C)),
         const SizedBox(height: 20),
-        const Text('Analyzing your document...',
-            style: TextStyle(color: Colors.grey)),
+        Text(
+          isEn ? 'Analyzing your document...' : 'Menganalisis dokumen anda...',
+          style: const TextStyle(color: Colors.grey),
+        ),
       ],
     );
   }
 
   // --- 3. RESULT STATE ---
-  Widget _buildResultState() {
+  Widget _buildResultState(bool isEn) {
     final String risk =
         _analysisData?['riskLevel']?.toString().toUpperCase() ?? 'UNKNOWN';
     final Color riskColor = risk == 'HIGH'
@@ -193,8 +226,8 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Risk Level',
-                      style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(isEn ? 'Risk Level' : 'Tahap Risiko',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   Text(risk,
                       style: TextStyle(
                           fontWeight: FontWeight.bold, color: riskColor)),
@@ -204,8 +237,10 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
           ),
         ),
         const SizedBox(height: 24),
-        const Text('Risky Clauses Found',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(
+          isEn ? 'Risky Clauses Found' : 'Klausa Berisiko Ditemui',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 12),
         if (_analysisData?['clauses'] != null)
           ...(_analysisData!['clauses'] as List).asMap().entries.map((entry) {
@@ -214,21 +249,30 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
               entry.value['title'] ?? 'Unknown Clause',
               entry.value['risk'] ?? 'Potential Risk detected',
               entry.value['legalRef'] ?? 'No reference available',
+              isEn,
             );
           }).toList()
         else
-          const Text("No significant risks found."),
+          Text(isEn
+              ? "No significant risks found."
+              : "Tiada risiko ketara ditemui."),
         const SizedBox(height: 24),
         ElevatedButton(
           onPressed: () => setState(() => _currentState = 'upload'),
-          child: const Text('Analyze Another Document'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF162235),
+            foregroundColor: Colors.white,
+            minimumSize: const Size.fromHeight(50),
+          ),
+          child:
+              Text(isEn ? 'Analyze Another Document' : 'Analisis Dokumen Lain'),
         ),
       ],
     );
   }
 
   Widget _buildClauseCard(
-      int index, String title, String risk, String legalRef) {
+      int index, String title, String risk, String legalRef, bool isEn) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -244,8 +288,12 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Relevant Legal Reference:',
-                    style: TextStyle(fontSize: 10, color: Colors.grey)),
+                Text(
+                  isEn
+                      ? 'Relevant Legal Reference:'
+                      : 'Rujukan Undang-undang Berkaitan:',
+                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                ),
                 Text(legalRef,
                     style: const TextStyle(
                         fontSize: 12, fontWeight: FontWeight.w600)),
