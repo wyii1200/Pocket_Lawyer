@@ -49,10 +49,12 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
 
     try {
       final filePath = await uploadFileToStorage(file);
-
+      final extension = file.path.endsWith('.pdf') ? 'pdf' : 'image';
+      
       final docRef =
           await FirebaseFirestore.instance.collection("documents").add({
         "filePath": filePath,
+        "fileType": extension,
         "status": "processing",
         "createdAt": FieldValue.serverTimestamp(),
       });

@@ -38,7 +38,8 @@ Date: {{date}}
 
 RE: FORMAL DEMAND FOR {{demandType}}
 
-This is a formal demand for {{demandDescription}}.
+This is a formal demand for {{demandDescription}}
+
 
 Amount: {{amount}}
 Due Date: {{dueDate}}

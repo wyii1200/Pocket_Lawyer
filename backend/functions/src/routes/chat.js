@@ -21,7 +21,7 @@ exports.legalChat = functions.https.onRequest(async (req, res) => {
 
     // Mock response for testing
     const mockReplies = {
-      "rights": "In Malaysia, you have several rights under the Contracts Act 1950. These include the right to enter into a binding contract, the right to interpretation of contract terms in your favor (when ambiguous), and the right to remedies for breach of contract.",
+      "rights": "In Malaysia, you have several rights under  the Contracts Act 1950. These include the right to enter into a binding contract, the right to interpretation of contract terms in your favor (when ambiguous), and the right to remedies for breach of contract.",
       "contract": "A contract is a legally binding agreement between two or more parties. In Malaysia, contracts are governed by the Contracts Act 1950. The essential elements are offer, acceptance, consideration, and intention to create legal relations.",
       "default": "I'm a legal assistant trained on Malaysian law. I can help you understand contracts, consumer rights, employment law, and other legal matters. Please ask your question clearly."
     };
