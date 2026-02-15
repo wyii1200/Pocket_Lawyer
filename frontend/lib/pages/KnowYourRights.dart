@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import '../services/history_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 
 class KnowYourRightsPage extends StatefulWidget {
   const KnowYourRightsPage({super.key});
@@ -14,6 +16,45 @@ class _KnowYourRightsPageState extends State<KnowYourRightsPage> {
   String _searchQuery = "";
   String _selectedLang = 'en';
 
+  final List<Map<String, dynamic>> _rights = [
+    {
+      'icon': LucideIcons.briefcase,
+      'title': 'Employment Rights',
+      'act': 'Employment Act 1955',
+      'summary':
+          'Protects employees regarding minimum wages, working hours, and leave entitlements.',
+      'details':
+          'The Employment Act 1955 applies to employees earning up to RM4,000 per month. It covers rights such as maximum 48 working hours per week and 98 days maternity leave.',
+    },
+    {
+      'icon': LucideIcons.home,
+      'title': 'Tenant Rights',
+      'act': 'National Land Code 1965',
+      'summary':
+          'Protects tenants regarding tenancy agreements and occupancy rights.',
+      'details':
+          'In Malaysia, tenant rights are protected through valid agreements. Landlords must provide adequate notice before termination and maintain habitable premises.',
+    },
+    {
+      'icon': LucideIcons.shoppingCart,
+      'title': 'Consumer Rights',
+      'act': 'Consumer Protection Act 1999',
+      'summary':
+          'Protects consumers against unfair trade practices and defective goods.',
+      'details':
+          'The Consumer Protection Act 1999 grants rights to safe goods and accurate information. The Tribunal for Consumer Claims handles claims up to RM50,000.',
+    },
+    {
+      'icon': LucideIcons.fileText,
+      'title': 'Contract Basics',
+      'act': 'Contracts Act 1950',
+      'summary':
+          'Governs the formation and enforcement of contracts in Malaysia.',
+      'details':
+          'The Contracts Act 1950 establishes that valid contracts require offer, acceptance, and consideration. Section 24 states unlawful agreements are void.',
+    },
+  ];
+  
   @override
   void initState() {
     super.initState();
@@ -93,7 +134,42 @@ class _KnowYourRightsPageState extends State<KnowYourRightsPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(LucideIcons.arrowLeft),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () async {
+            if (_expandedIndex != null) {
+              final right = _rights[_expandedIndex!];
+
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: Text(right['title']),
+                    content: Text(right['summary']),
+                    actions: [
+                      TextButton(
+                        child: const Text("Close"),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  );
+                },
+              );
+
+            // Save to history when a card is expanded
+              await HistoryService.saveHistory(
+                type: "Know Your Rights",
+                summary: right['title'],
+                metadata: {
+                  "act": right['act'],
+                  "summary": right['summary'],
+                  "details": right['details'],
+                },
+              );
+            } else {
+              Navigator.pop(context); // fallback if nothing expanded
+            }
+          }
+
+
         ),
         title: Text(isEn ? 'Know Your Rights' : 'Kenali Hak Anda'),
         centerTitle: true,

@@ -8,6 +8,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/history_service.dart';
+
+
 class DocumentAnalysisPage extends StatefulWidget {
   const DocumentAnalysisPage({super.key});
 
@@ -44,7 +47,7 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
     return ref.fullPath;
   }
 
-  Future<void> _sendFileToBackend(File file) async {
+  /*Future<void> _sendFileToBackend(File file) async {
     setState(() => _currentState = 'loading');
 
     try {
@@ -67,6 +70,64 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
         _analysisData = Map<String, dynamic>.from(result.data);
         _currentState = 'result';
       });
+
+      //save history to firestore
+      await HistoryService.saveHistory(
+        type: "Document Analysis",
+        summary:
+            "${_analysisData?['documentName'] ?? 'Document'} — ${_analysisData?['riskLevel'] ?? 'Unknown Risk'}",
+        metadata: {
+          "riskLevel": _analysisData?['riskLevel'],
+          "summary": _analysisData?['summary'],
+          "clauses": _analysisData?['clauses'],
+          "filePath": filePath,
+        },
+      );
+
+
+    } catch (e) {
+      setState(() => _currentState = 'upload');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Analysis failed: $e")),
+      );
+    }
+  }*/
+
+    Future<void> _sendFileToBackend(File file) async {
+    setState(() => _currentState = 'loading');
+    try {
+      final filePath = await uploadFileToStorage(file);
+
+      // Save metadata to Firestore
+      final docRef = await FirebaseFirestore.instance.collection("documents").add({
+        "filePath": filePath,
+        "status": "processing",
+        "createdAt": FieldValue.serverTimestamp(),
+      });
+
+      // Call Firebase Function
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('analyzeContract')
+          .call({"documentId": docRef.id});
+
+      final data = Map<String, dynamic>.from(result.data);
+
+      setState(() {
+        _analysisData = data;
+        _currentState = 'result';
+      });
+
+      // Save history to Firestore
+      await HistoryService.saveHistory(
+        type: "Document Analysis",
+        summary: "Document ${docRef.id} — ${data['riskLevel'] ?? 'Unknown Risk'}",
+        metadata: {
+          "riskLevel": data['riskLevel'],
+          "summary": data['summary'],
+          "clauses": data['clauses'],
+          "filePath": filePath,
+        },
+      );
     } catch (e) {
       setState(() => _currentState = 'upload');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -74,6 +135,7 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
       );
     }
   }
+
 
   Future<void> _pickPDFAndAnalyze() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(

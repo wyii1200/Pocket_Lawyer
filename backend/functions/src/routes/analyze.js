@@ -21,14 +21,36 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 
 
 exports.analyzeContract = onCall(async (request) => {
-  try {
-    const { documentId, contractText } = request.data;
+  console.log("ANALYZE CALLED");
 
-    if (!documentId && !contractText) {
-      throw new HttpsError(
-        "invalid-argument",
-        "Either documentId or contractText is required"
-      );
+  const { documentId } = request.data;
+  if (!documentId) {
+    throw new HttpsError("invalid-argument", "documentId is required");
+  }
+
+  // Example AI result placeholder
+  const aiResult = { summary: "Contract looks fine", riskLevel: "Low" };
+
+  await db.collection("documents").doc(documentId).update({
+    status: "completed",
+    result: aiResult,
+    completedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  
+  return { message: "Function working!", ...aiResult };
+});
+
+
+
+
+
+/*exports.analyzeContract = onCall(async (request) => {
+  try {
+    const { documentId } = request.data;
+
+    if (!documentId) {
+      throw new HttpsError("invalid-argument", "documentId is required");
     }
 
     let extractedText = contractText;
@@ -41,9 +63,9 @@ exports.analyzeContract = onCall(async (request) => {
       docRef = db.collection("documents").doc(documentId);
       const docSnap = await docRef.get();
 
-      if (!docSnap.exists) {
-        throw new HttpsError("not-found", "Document not found");
-      }
+    if (!docSnap.exists) {
+      throw new HttpsError("not-found", "Document not found");
+    }
 
     const {filePath, fileType} = docSnap.data();
 
@@ -111,7 +133,7 @@ exports.analyzeContract = onCall(async (request) => {
     // return { status: "completed", analysis: text };
 
   } catch (error) {
-    console.error("Analyze function error:", error);
+    console.error("Analyze error:", error);
     throw new HttpsError("internal", error.message);
   }
 });

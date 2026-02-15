@@ -5,13 +5,15 @@
 */
 
 
-const admin = require("firebase-admin");
-const functions = require("firebase-functions");
-const { db, storage } = require("../config/firebase");
-const { verifyAuth } = require("../middleware/auth");
-const getModel = require("../config/gemini");
-const pdfParse = require("pdf-parse");
 
+//const functions = require("firebase-functions");
+
+//const { verifyAuth } = require("../middleware/auth");
+//const getModel = require("../config/gemini");
+//const pdfParse = require("pdf-parse");
+
+const admin = require("firebase-admin");
+const { db, storage } = require("../config/firebase");
 
 //change from onRequest to onCall for better error handling and auth support
 const { onCall, HttpsError } = require("firebase-functions/v2/https");

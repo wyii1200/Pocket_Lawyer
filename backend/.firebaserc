@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "pocketlawyer-ai-2025"
+    "default": "pocketlawyer-ai-2025",
+    "dev": "demo-pocketlawyer"
   }
 }

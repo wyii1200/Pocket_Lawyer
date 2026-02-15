@@ -12,6 +12,7 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
+  
   String _searchQuery = "";
   String _selectedCategory = "All";
   String _selectedLang = 'en';
@@ -29,6 +30,7 @@ class _HistoryPageState extends State<HistoryPage> {
       _selectedLang = prefs.getString('app_language') ?? 'en';
     });
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -253,9 +255,16 @@ class _HistoryPageState extends State<HistoryPage> {
               children: [
                 Text(
                   // Localize the type label if necessary
-                  type == "Document Analysis"
+                  /*type == "Document Analysis"
                       ? (isEn ? "Document Analysis" : "Analisis Dokumen")
-                      : (isEn ? "Letter Generation" : "Penjanaan Surat"),
+                      : (isEn ? "Letter Generation" : "Penjanaan Surat"),*/
+                      type == "Document Analysis"
+                        ? (isEn ? "Document Analysis" : "Analisis Dokumen")
+                        : type == "Letter Generation"
+                            ? (isEn ? "Letter Generation" : "Penjanaan Surat")
+                            : type == "KnowYourRight"
+                                ? (isEn ? "Know Your Rights" : "Mengenali Hak Kamu")
+                                : type, // fallback if none matc
                   style: const TextStyle(
                       fontWeight: FontWeight.bold, fontSize: 14),
                 ),

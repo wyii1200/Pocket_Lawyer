@@ -6,7 +6,7 @@ const getModel = () => {
   if (!model) {
     const apiKey = process.env.GEMINI_API_KEY || "demo-key-for-emulator";
     const genAI = new GoogleGenerativeAI(apiKey);
-    model = genAI.getGenerativeModel({model: "gemini-1.5-pro"});
+    model = genAI.getGenerativeModel({model: "gemini-2.5-pro"});
   }
   return model;
 };

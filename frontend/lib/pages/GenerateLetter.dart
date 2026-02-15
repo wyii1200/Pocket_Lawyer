@@ -6,6 +6,12 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+import '../services/history_service.dart';
+
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 class GenerateLetterPage extends StatefulWidget {
@@ -40,6 +46,9 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
     });
   }
 
+  
+
+
   Future<void> _handleGenerate() async {
     bool isEn = _selectedLang == 'en';
     if (_yourNameController.text.isEmpty || _issueController.text.isEmpty) {
@@ -66,7 +75,7 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
               : _recipientNameController.text,
           'issue': _issueController.text,
           'date': _date,
-          'lang': _selectedLang,
+          //'lang': _selectedLang,
         }
       });
 
@@ -76,6 +85,19 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
         _showPreview = true;
         _isLoading = false;
       });
+      
+      //save history to firestore
+      await HistoryService.saveHistory(
+        type: "Letter Generation",
+        summary: "${_letterType.toUpperCase()} Letter — ${_issueController.text}",
+      
+        metadata: {
+          'letterType': _letterType,
+          'recipientName': _recipientNameController.text,
+          'date': _date,
+        }
+      );
+
     } catch (e) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -83,6 +105,8 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
       );
     }
   }
+
+
 
   Future<void> _downloadPdf() async {
     final pdf = pw.Document();
@@ -111,6 +135,8 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
           subject: "Legal Letter - Pocket Lawyer");
     }
   }
+
+  
 
   @override
   Widget build(BuildContext context) {
@@ -149,6 +175,10 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
         ),
       ),
     );
+
+
+
+    
   }
 
   Widget _buildForm(bool isEn) {
