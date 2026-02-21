@@ -91,6 +91,8 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
     }
   }*/
 
+  
+
     Future<void> _sendFileToBackend(File file) async {
     setState(() => _currentState = 'loading');
     try {
@@ -104,7 +106,8 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
       });
 
       // Call Firebase Function
-      final result = await FirebaseFunctions.instance
+      // Use instanceFor to specify region if your function is deployed in a specific region
+      final result = await FirebaseFunctions.instanceFor(region: 'us-central1')
           .httpsCallable('analyzeContract')
           .call({"documentId": docRef.id});
 
@@ -130,6 +133,7 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
       setState(() => _currentState = 'upload');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Analysis failed: $e")),
+        
       );
     }
   }

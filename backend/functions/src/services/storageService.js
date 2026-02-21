@@ -12,9 +12,12 @@ async function uploadBuffer(buffer, filePath) {
 
   await file.save(buffer);
 
-  await file.makePublic();
+  //await file.makePublic();
 
-  return `https://storage.googleapis.com/${bucket.name}/${filePath}`;
+
+  return `http://localhost:9199/${bucket.name}/${filePath}`;
+
+  //return `https://storage.googleapis.com/${bucket.name}/${filePath}`;
 }
 
 module.exports = {uploadBuffer};

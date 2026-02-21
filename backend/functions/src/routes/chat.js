@@ -4,58 +4,51 @@
 * sends the combined prompt to Google Generative AI, and returns the AI-generated reply.
 */
 
-const admin = require("firebase-admin");
-const functions = require("firebase-functions");
-const { db, storage } = require("../config/firebase");
-//const { verifyAuth } = require("../middleware/auth");
-//const getModel = require("../config/gemini");
-//const pdfParse = require("pdf-parse");
 
-
-const functions = require("firebase-functions");
-const admin = require("firebase-admin");
+//use v2 of firebase functions for better error handling and auth support
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { generateAIResponse } = require("../services/geminiService");
 
-exports.legalChat = functions.https.onCall(async (data, context) => {
-  try {
-    const { message } = data;
+exports.legalChat = onCall(
+  { region: "us-central1" },
+  async (request) => {
+    console.log("LEGAL CHAT CALLED");
+    console.log("DATA:", request.data);
+    console.log("AUTH:", request.auth);
 
-    if (!message) {
-      throw new functions.https.HttpsError(
-        "invalid-argument",
-        "Message is required"
-      );
+    // Safety check
+    if (!request.data) {
+      throw new HttpsError("invalid-argument", "No data received");
     }
 
-    const prompt = `
-You are a professional Malaysian legal assistant.
+    const message = request.data.message;
+    const lang = request.data.lang || "en";
 
-Provide:
-- Clear explanation
-- Mention relevant Malaysian Acts if applicable
-- Keep language simple
-- Add a short legal reference line at the end
+    if (!message || message.trim() === "") {
+      throw new HttpsError("invalid-argument", "Message is required");
+    }
 
-User Question:
-${message}
-`;
+    try {
+      const prompt = `
+      You are a legal assistant.
+      Language: ${lang}
+      User Question: ${message}
+      Provide general legal information only.
+      `;
 
-    const aiReply = await generateAIResponse(prompt);
+      const reply = await generateAIResponse(prompt);
 
-    return {
-      reply: aiReply,
-      legalRef: "Malaysian Legal Framework"
-    };
+      return {
+        reply: reply,
+        legalRef: "Contracts Act 1950 (Malaysia)"
+      };
 
-  } catch (error) {
-    console.error("legalChat error:", error);
-    throw new functions.https.HttpsError(
-      "internal",
-      error.message
-    );
+    } catch (error) {
+      console.error("AI ERROR:", error);
+      throw new HttpsError("internal", "AI processing failed");
+    }
   }
-});
-
+);
 
 /*exports.legalChat = functions.https.onRequest(async (req, res) => {
   try {

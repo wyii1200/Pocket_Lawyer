@@ -64,7 +64,8 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
     setState(() => _isLoading = true);
 
     try {
-      final result = await FirebaseFunctions.instance
+      // Use instanceFor to specify region if your function is deployed in a specific region
+      final result = await FirebaseFunctions.instanceFor(region: 'us-central1')
           .httpsCallable('generateLetter')
           .call({
         'templateId': _letterType,
@@ -95,6 +96,7 @@ class _GenerateLetterPageState extends State<GenerateLetterPage> {
           'letterType': _letterType,
           'recipientName': _recipientNameController.text,
           'date': _date,
+          'lang': _selectedLang,
         }
       );
 

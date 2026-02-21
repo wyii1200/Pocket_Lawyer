@@ -86,7 +86,8 @@ class _LegalChatPageState extends State<LegalChatPage> {
     _scrollToBottom();
 
     try {
-      final result = await FirebaseFunctions.instance
+      // regular FirebaseFunctions.instance can be used if your function is deployed in the default region (us-central1)
+      final result = await FirebaseFunctions.instanceFor(region: 'us-central1')
           .httpsCallable('legalChat')
           .call({'message': text, 'lang': _selectedLang});
 

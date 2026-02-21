@@ -18,7 +18,7 @@ const { db, storage } = require("../config/firebase");
 //change from onRequest to onCall for better error handling and auth support
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 
-exports.uploadDocument = onCall(async (request) => {
+exports.uploadDocument = onCall({ region: "us-central1" },async (request) => {
   const { fileBase64 } = request.data;
 
   if (!fileBase64) {
@@ -33,6 +33,26 @@ exports.uploadDocument = onCall(async (request) => {
   });
 
   return { documentId, status: "processing" };
+
+  /*const uid = request.auth?.uid;
+
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "Login required");
+  }
+
+  const documentRef = db
+    .collection("users")
+    .doc(uid)
+    .collection("history")
+    .doc();
+
+  await documentRef.set({
+    status: "processing",
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  return { documentId: documentRef.id, status: "processing" };
+*/
 });
 
 /*exports.uploadDocument = functions.https.onRequest(async (req, res) => {

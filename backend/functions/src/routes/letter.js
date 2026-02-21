@@ -66,7 +66,7 @@ Party 2: _________________`
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 
-exports.generateLetter = onCall(async (request) => {
+exports.generateLetter = onCall({ region: "us-central1" },async (request) => {
   const { templateId, templateContent, userData } = request.data;
 
   if (!userData) {
