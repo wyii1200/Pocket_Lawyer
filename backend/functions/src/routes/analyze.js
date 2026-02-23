@@ -45,7 +45,7 @@ exports.analyzeContract = onCall(async (request) => {
 
 
 
-/*exports.analyzeContract = onCall(async (request) => {
+exports.analyzeContract = onCall(async (request) => {
   try {
     const { documentId } = request.data;
 

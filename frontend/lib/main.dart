@@ -7,6 +7,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:firebase_ai/firebase_ai.dart';
+
 import 'firebase_options.dart';
 
 import 'pages/Login.dart';
@@ -36,6 +39,11 @@ Future<void> main() async {
     FirebaseFunctions.instance.useFunctionsEmulator(host, 5001);
     debugPrint("Running in Debug Mode: Connected to Firebase Emulators");
   }
+
+  // Initialize the Gemini Developer API backend service
+// Create a `GenerativeModel` instance with a model that supports your use case
+final model =
+      FirebaseAI.googleAI().generativeModel(model: 'gemini-2.5-flash');
 
   runApp(const PocketLawyerApp());
 }
