@@ -1,14 +1,15 @@
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'package:cloud_functions/cloud_functions.dart';
+
+import 'package:file_picker/file_picker.dart';
+
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:cloud_functions/cloud_functions.dart';
-import 'dart:io';
-import 'package:file_picker/file_picker.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../services/history_service.dart';
+import '../services/history_service.dart'; // adjust import path as needed
 
 
 class DocumentAnalysisPage extends StatefulWidget {
@@ -37,76 +38,30 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
     });
   }
 
-  Future<String> uploadFileToStorage(File file) async {
+  Future<String> uploadBytesToStorage(Uint8List bytes, String extension) async {
     final fileName = DateTime.now().millisecondsSinceEpoch.toString();
-    final extension = file.path.endsWith('.pdf') ? 'pdf' : 'jpg';
-    final ref =
-        FirebaseStorage.instance.ref().child("documents/$fileName.$extension");
-
-    await ref.putFile(file);
+    final ref = FirebaseStorage.instance.ref().child("documents/$fileName.$extension");
+    await ref.putData(
+      bytes,
+      SettableMetadata(
+        contentType: extension == 'pdf' ? 'application/pdf' : 'image/jpeg',
+      ),
+    );
     return ref.fullPath;
   }
 
-  /*Future<void> _sendFileToBackend(File file) async {
+  Future<void> _sendBytesToBackend(Uint8List bytes, String extension) async {
     setState(() => _currentState = 'loading');
 
     try {
-      final filePath = await uploadFileToStorage(file);
+      final filePath = await uploadBytesToStorage(bytes, extension);
 
-      final docRef =
-          await FirebaseFirestore.instance.collection("documents").add({
-        "filePath": filePath,
-        "status": "processing",
-        "createdAt": FieldValue.serverTimestamp(),
-      });
-
-      final result = await FirebaseFunctions.instance
-          .httpsCallable('analyzeContract')
-          .call({"documentId": docRef.id});
-
-      setState(() {
-        _analysisData = Map<String, dynamic>.from(result.data);
-        _currentState = 'result';
-      });
-
-      //save history to firestore
-      await HistoryService.saveHistory(
-        type: "Document Analysis",
-        summary:
-            "${_analysisData?['documentName'] ?? 'Document'} — ${_analysisData?['riskLevel'] ?? 'Unknown Risk'}",
-        metadata: {
-          "riskLevel": _analysisData?['riskLevel'],
-          "summary": _analysisData?['summary'],
-          "clauses": _analysisData?['clauses'],
-          "filePath": filePath,
-        },
-      );
-
-
-    } catch (e) {
-      setState(() => _currentState = 'upload');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Analysis failed: $e")),
-      );
-    }
-  }*/
-
-  
-
-    Future<void> _sendFileToBackend(File file) async {
-    setState(() => _currentState = 'loading');
-    try {
-      final filePath = await uploadFileToStorage(file);
-
-      // Save metadata to Firestore
       final docRef = await FirebaseFirestore.instance.collection("documents").add({
         "filePath": filePath,
         "status": "processing",
         "createdAt": FieldValue.serverTimestamp(),
       });
 
-      // Call Firebase Function
-      // Use instanceFor to specify region if your function is deployed in a specific region
       final result = await FirebaseFunctions.instanceFor(region: 'us-central1')
           .httpsCallable('analyzeContract')
           .call({"documentId": docRef.id});
@@ -118,7 +73,7 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
         _currentState = 'result';
       });
 
-      // Save history to Firestore
+
       await HistoryService.saveHistory(
         type: "Document Analysis",
         summary: "Document ${docRef.id} — ${data['riskLevel'] ?? 'Unknown Risk'}",
@@ -132,8 +87,11 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
     } catch (e) {
       setState(() => _currentState = 'upload');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Analysis failed: $e")),
-        
+        SnackBar(
+          content: Text("Analysis failed: $e"),
+          duration: const Duration(seconds: 8),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -143,19 +101,22 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf'],
+      withData: true,
     );
 
-    if (result != null && result.files.single.path != null) {
-      await _sendFileToBackend(File(result.files.single.path!));
+    if (result != null && result.files.single.bytes != null) {
+      await _sendBytesToBackend(result.files.single.bytes!, 'pdf');
     }
   }
 
   Future<void> _scanCameraAndAnalyze() async {
-    final picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.camera);
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
 
-    if (image != null) {
-      await _sendFileToBackend(File(image.path));
+    if (result != null && result.files.single.bytes != null) {
+      await _sendBytesToBackend(result.files.single.bytes!, 'jpg');
     }
   }
 
@@ -330,8 +291,7 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
             foregroundColor: Colors.white,
             minimumSize: const Size.fromHeight(50),
           ),
-          child:
-              Text(isEn ? 'Analyze Another Document' : 'Analisis Dokumen Lain'),
+          child: Text(isEn ? 'Analyze Another Document' : 'Analisis Dokumen Lain'),
         ),
       ],
     );

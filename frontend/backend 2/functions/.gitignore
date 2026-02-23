@@ -1,3 +1,0 @@
-npm install firebase-admin firebase-functions axios pdf-parse multer @google-cloud/storage
-node_modules/
-*.local

@@ -6,14 +6,18 @@
  */
 
 
-const getModel = require("../config/gemini");
+const getAI = require("../config/gemini");
 
 async function generateAIResponse(prompt) {
-  const model = getModel();
-  const result = await model.generateContent(prompt);
+  const ai = getAI();
 
-  const response = await result.response;
-  return response.text();
+  const response = await ai.models.generateContent({
+    model: "gemini-2.0-flash",
+    contents: prompt,
+  });
+
+  // In @google/genai v1.x, response.text is a string directly
+  return response.text;
 }
 
-module.exports = {generateAIResponse};
+module.exports = { generateAIResponse };
