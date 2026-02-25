@@ -50,75 +50,78 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
     return ref.fullPath;
   }
 
-  Future<void> _sendBytesToBackend(Uint8List bytes, String extension) async {
-    setState(() => _currentState = 'loading');
+  Future<void> _sendBytesToBackend(Uint8List bytes, String extension, String fileName) async {
+      setState(() => _currentState = 'loading');
 
-    try {
-      final filePath = await uploadBytesToStorage(bytes, extension);
+      try {
+        final filePath = await uploadBytesToStorage(bytes, extension);
 
-      final docRef = await FirebaseFirestore.instance.collection("documents").add({
-        "filePath": filePath,
-        "status": "processing",
-        "createdAt": FieldValue.serverTimestamp(),
-      });
-
-      final result = await FirebaseFunctions.instanceFor(region: 'us-central1')
-          .httpsCallable('analyzeContract')
-          .call({"documentId": docRef.id});
-
-      final data = Map<String, dynamic>.from(result.data);
-
-      setState(() {
-        _analysisData = data;
-        _currentState = 'result';
-      });
-
-
-      await HistoryService.saveHistory(
-        type: "Document Analysis",
-        summary: "Document ${docRef.id} — ${data['riskLevel'] ?? 'Unknown Risk'}",
-        metadata: {
-          "riskLevel": data['riskLevel'],
-          "summary": data['summary'],
-          "clauses": data['clauses'],
+        final docRef = await FirebaseFirestore.instance.collection("documents").add({
           "filePath": filePath,
-        },
-      );
-    } catch (e) {
-      setState(() => _currentState = 'upload');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Analysis failed: $e"),
-          duration: const Duration(seconds: 8),
-          backgroundColor: Colors.red,
-        ),
-      );
+          "fileName": fileName, // SAVE FILE NAME
+          "status": "processing",
+          "createdAt": FieldValue.serverTimestamp(),
+        });
+
+        final result = await FirebaseFunctions.instanceFor(region: 'us-central1')
+            .httpsCallable('analyzeContract')
+            .call({"documentId": docRef.id});
+
+        final data = Map<String, dynamic>.from(result.data);
+
+        setState(() {
+          _analysisData = data;
+          _currentState = 'result';
+        });
+
+        await HistoryService.saveHistory(
+          type: "Document Analysis",
+          summary: "$fileName — ${data['riskLevel'] ?? 'Unknown Risk'}", // USE FILE NAME
+          metadata: {
+            "riskLevel": data['riskLevel'],
+            "summary": data['summary'],
+            "clauses": data['clauses'],
+            "filePath": filePath,
+            "fileName": fileName,
+          },
+        );
+      } catch (e) {
+        setState(() => _currentState = 'upload');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Analysis failed: $e"),
+            duration: const Duration(seconds: 8),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
-  }
 
 
   Future<void> _pickPDFAndAnalyze() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf'],
-      withData: true,
-    );
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+        withData: true,
+      );
 
-    if (result != null && result.files.single.bytes != null) {
-      await _sendBytesToBackend(result.files.single.bytes!, 'pdf');
+      if (result != null && result.files.single.bytes != null) {
+        final fileName = result.files.single.name; // GET FILE NAME HERE
+        await _sendBytesToBackend(result.files.single.bytes!, 'pdf', fileName);
+      }
     }
-  }
 
-  Future<void> _scanCameraAndAnalyze() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      withData: true,
-    );
+    Future<void> _scanCameraAndAnalyze() async {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: true,
+      );
 
-    if (result != null && result.files.single.bytes != null) {
-      await _sendBytesToBackend(result.files.single.bytes!, 'jpg');
+      if (result != null && result.files.single.bytes != null) {
+        final fileName = result.files.single.name; // GET FILE NAME HERE
+        await _sendBytesToBackend(result.files.single.bytes!, 'jpg', fileName);
+      }
     }
-  }
 
   @override
   Widget build(BuildContext context) {
