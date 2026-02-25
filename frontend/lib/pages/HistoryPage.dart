@@ -39,7 +39,7 @@ class _HistoryPageState extends State<HistoryPage> {
       isEn ? "All" : "Semua",
       "Document Analysis",
       "Letter Generation",
-      "KnowYourRight"
+      "Know Your Rights"
     ];
 
     String displayCategory =
@@ -344,7 +344,7 @@ class _HistoryPageState extends State<HistoryPage> {
   String _getTypeLabel(String type, bool isEn) {
     if (type == "Document Analysis") return isEn ? "Analysis" : "Analisis";
     if (type == "Letter Generation") return isEn ? "Letter" : "Surat";
-    if (type == "KnowYourRight") return isEn ? "Rights Guide" : "Panduan Hak";
+    if (type == "Know Your Rights") return isEn ? "Rights Guide" : "Panduan Hak";
     return type;
   }
 }
