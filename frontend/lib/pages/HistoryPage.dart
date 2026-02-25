@@ -12,7 +12,6 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
-  
   String _searchQuery = "";
   String _selectedCategory = "All";
   String _selectedLang = 'en';
@@ -31,7 +30,6 @@ class _HistoryPageState extends State<HistoryPage> {
     });
   }
 
-
   @override
   Widget build(BuildContext context) {
     bool isEn = _selectedLang == 'en';
@@ -40,38 +38,51 @@ class _HistoryPageState extends State<HistoryPage> {
     final List<String> categories = [
       isEn ? "All" : "Semua",
       "Document Analysis",
-      "Letter Generation"
+      "Letter Generation",
+      "KnowYourRight"
     ];
 
     String displayCategory =
-        _selectedCategory == "Semua" ? "All" : _selectedCategory;
+        (_selectedCategory == "Semua" || _selectedCategory == "All")
+            ? "All"
+            : _selectedCategory;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F4F9),
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: Text(isEn ? 'History' : 'Sejarah'),
+        title: Text(
+          isEn ? 'Activity History' : 'Sejarah Aktiviti',
+          style: const TextStyle(
+              fontWeight: FontWeight.bold, fontFamily: 'Poppins', fontSize: 18),
+        ),
         centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF162235),
-        elevation: 1,
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: const Color(0xFFE2E8F0), height: 1),
+        ),
       ),
       body: Column(
         children: [
-          // 1. SEARCH BAR
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
             child: TextField(
               controller: _searchController,
               onChanged: (value) =>
                   setState(() => _searchQuery = value.toLowerCase()),
+              style: const TextStyle(fontFamily: 'Poppins', fontSize: 14),
               decoration: InputDecoration(
-                hintText: isEn
-                    ? "Search your legal history..."
-                    : "Cari sejarah undang-undang...",
-                prefixIcon: const Icon(LucideIcons.search, size: 20),
+                hintText: isEn ? "Search your history..." : "Cari sejarah...",
+                hintStyle: TextStyle(color: Colors.grey[400]),
+                prefixIcon: const Icon(LucideIcons.search,
+                    size: 18, color: Color(0xFF162235)),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(LucideIcons.x, size: 16),
+                        icon: const Icon(LucideIcons.xCircle,
+                            size: 18, color: Colors.grey),
                         onPressed: () {
                           _searchController.clear();
                           setState(() => _searchQuery = "");
@@ -79,55 +90,57 @@ class _HistoryPageState extends State<HistoryPage> {
                       )
                     : null,
                 filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                fillColor: const Color(0xFFF1F5F9),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide:
+                      const BorderSide(color: Color(0xFF162235), width: 1),
                 ),
               ),
             ),
           ),
-
-          // 2. CATEGORY CHIPS
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Row(
-              children: categories.map((category) {
+          Container(
+            height: 60,
+            color: Colors.white,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: categories.length,
+              itemBuilder: (context, index) {
+                final category = categories[index];
                 bool isSelected = _selectedCategory == category;
                 return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: FilterChip(
+                  padding:
+                      const EdgeInsets.only(right: 10, top: 10, bottom: 10),
+                  child: ChoiceChip(
                     label: Text(category),
                     selected: isSelected,
-                    onSelected: (bool value) {
-                      setState(() => _selectedCategory = category);
-                    },
-                    backgroundColor: Colors.white,
-                    selectedColor: const Color(0xFF162235).withOpacity(0.1),
+                    onSelected: (val) =>
+                        setState(() => _selectedCategory = category),
+                    selectedColor: const Color(0xFF162235),
+                    backgroundColor: const Color(0xFFF1F5F9),
                     labelStyle: TextStyle(
-                      color: isSelected
-                          ? const Color(0xFF162235)
-                          : Colors.grey[600],
+                      color:
+                          isSelected ? Colors.white : const Color(0xFF64748B),
                       fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.normal,
+                          isSelected ? FontWeight.bold : FontWeight.w600,
                       fontSize: 12,
+                      fontFamily: 'Poppins',
                     ),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)),
-                    side: BorderSide(
-                        color: isSelected
-                            ? const Color(0xFF162235)
-                            : Colors.transparent),
+                        borderRadius: BorderRadius.circular(12)),
+                    side: BorderSide.none,
                     showCheckmark: false,
                   ),
                 );
-              }).toList(),
+              },
             ),
           ),
-
-          // 3. FILTERED LIST
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -138,14 +151,14 @@ class _HistoryPageState extends State<HistoryPage> {
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(
+                      child:
+                          CircularProgressIndicator(color: Color(0xFF162235)));
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return Center(
-                    child: Text(
-                        isEn ? "No records found." : "Tiada rekod dijumpai."),
-                  );
+                  return _buildEmptyState(isEn, LucideIcons.history,
+                      isEn ? "No records yet" : "Tiada rekod lagi");
                 }
 
                 final filteredDocs = snapshot.data!.docs.where((doc) {
@@ -155,7 +168,6 @@ class _HistoryPageState extends State<HistoryPage> {
                   bool matchesSearch =
                       type.toLowerCase().contains(_searchQuery) ||
                           summary.contains(_searchQuery);
-
                   bool matchesCategory =
                       displayCategory == "All" || type == displayCategory;
 
@@ -163,14 +175,13 @@ class _HistoryPageState extends State<HistoryPage> {
                 }).toList();
 
                 if (filteredDocs.isEmpty) {
-                  return Center(
-                      child: Text(isEn
-                          ? "No matches found."
-                          : "Tiada padanan ditemui."));
+                  return _buildEmptyState(isEn, LucideIcons.searchX,
+                      isEn ? "No matches found" : "Tiada padanan");
                 }
 
                 return ListView.builder(
-                  padding: const EdgeInsets.all(24),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   itemCount: filteredDocs.length,
                   itemBuilder: (context, index) {
                     final item = filteredDocs[index];
@@ -185,19 +196,36 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
+  Widget _buildEmptyState(bool isEn, IconData icon, String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 48, color: Colors.grey[300]),
+          const SizedBox(height: 16),
+          Text(message,
+              style: TextStyle(
+                  color: Colors.grey[500],
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDismissibleItem(DocumentSnapshot item, String uid, bool isEn) {
     return Dismissible(
       key: Key(item.id),
       direction: DismissDirection.endToStart,
       background: Container(
         margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.only(right: 20),
+        padding: const EdgeInsets.only(right: 24),
         alignment: Alignment.centerRight,
         decoration: BoxDecoration(
-          color: Colors.redAccent,
-          borderRadius: BorderRadius.circular(12),
+          color: Colors.red[400],
+          borderRadius: BorderRadius.circular(16),
         ),
-        child: const Icon(LucideIcons.trash2, color: Colors.white),
+        child: const Icon(LucideIcons.trash2, color: Colors.white, size: 20),
       ),
       onDismissed: (_) {
         FirebaseFirestore.instance
@@ -207,10 +235,15 @@ class _HistoryPageState extends State<HistoryPage> {
             .doc(item.id)
             .delete();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(isEn ? "Entry deleted" : "Entri dipadam")),
+          SnackBar(
+            content: Text(isEn ? "Entry deleted" : "Entri dipadam"),
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
         );
       },
-      child: _buildHistoryItem(
+      child: _buildHistoryCard(
         type: item['type'],
         summary: item['summary'],
         date: item['createdAt'] ?? Timestamp.now(),
@@ -219,68 +252,99 @@ class _HistoryPageState extends State<HistoryPage> {
     );
   }
 
-  Widget _buildHistoryItem(
+  Widget _buildHistoryCard(
       {required String type,
       required String summary,
       required Timestamp date,
       required bool isEn}) {
     DateTime dt = date.toDate();
+    String formattedDate = "${dt.day}/${dt.month}/${dt.year}";
+
+    Color accentColor = type == "Document Analysis"
+        ? const Color(0xFF162235)
+        : type == "Letter Generation"
+            ? const Color(0xFFE67E22)
+            : const Color(0xFF0D9488);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          )
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4)),
         ],
       ),
-      child: Row(
-        children: [
-          Icon(
-            type == "Document Analysis"
-                ? LucideIcons.fileSearch
-                : LucideIcons.fileText,
-            size: 20,
-            color: const Color(0xFF162235),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  // Localize the type label if necessary
-                  /*type == "Document Analysis"
-                      ? (isEn ? "Document Analysis" : "Analisis Dokumen")
-                      : (isEn ? "Letter Generation" : "Penjanaan Surat"),*/
-                      type == "Document Analysis"
-                        ? (isEn ? "Document Analysis" : "Analisis Dokumen")
-                        : type == "Letter Generation"
-                            ? (isEn ? "Letter Generation" : "Penjanaan Surat")
-                            : type == "KnowYourRight"
-                                ? (isEn ? "Know Your Rights" : "Mengenali Hak Kamu")
-                                : type, // fallback if none matc
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-                const SizedBox(height: 4),
-                Text(summary,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 13, color: Colors.grey[800])),
-                const SizedBox(height: 8),
-                Text("${dt.day}/${dt.month}/${dt.year}",
-                    style: const TextStyle(color: Colors.grey, fontSize: 11)),
-              ],
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              height: 48,
+              width: 48,
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                type == "Document Analysis"
+                    ? LucideIcons.fileSearch
+                    : type == "Letter Generation"
+                        ? LucideIcons.fileText
+                        : LucideIcons.bookOpen,
+                size: 22,
+                color: accentColor,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _getTypeLabel(type, isEn),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: accentColor,
+                            fontFamily: 'Poppins'),
+                      ),
+                      Text(formattedDate,
+                          style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    summary,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF1E293B),
+                        fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  String _getTypeLabel(String type, bool isEn) {
+    if (type == "Document Analysis") return isEn ? "Analysis" : "Analisis";
+    if (type == "Letter Generation") return isEn ? "Letter" : "Surat";
+    if (type == "KnowYourRight") return isEn ? "Rights Guide" : "Panduan Hak";
+    return type;
   }
 }

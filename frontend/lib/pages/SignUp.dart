@@ -45,15 +45,12 @@ class _SignUpPageState extends State<SignUpPage> {
 
   void _handleSubmit() async {
     bool isEn = _selectedLang == 'en';
-
     if (!_formKey.currentState!.validate()) return;
-
     if (!_agreed) {
       _showError(
           isEn ? "Please agree to the Terms." : "Sila setuju dengan Terma.");
       return;
     }
-
     if (_passwordController.text != _confirmController.text) {
       _showError(isEn ? "Passwords do not match" : "Kata laluan tidak sepadan");
       return;
@@ -70,7 +67,6 @@ class _SignUpPageState extends State<SignUpPage> {
 
       String uid = userCredential.user!.uid;
 
-      // Store User Profile
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'fullName': _nameController.text.trim(),
         'email': _emailController.text.trim(),
@@ -105,7 +101,12 @@ class _SignUpPageState extends State<SignUpPage> {
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: const Color(0xFF162235),
+      ),
     );
   }
 
@@ -115,140 +116,161 @@ class _SignUpPageState extends State<SignUpPage> {
     if (_success) return _buildSuccessView(isEn);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(LucideIcons.arrowLeft),
+          icon: const Icon(LucideIcons.chevronLeft, color: Color(0xFF162235)),
           onPressed: () => Navigator.pop(context),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: const Color(0xFF162235),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(isEn ? 'Sign Up' : 'Daftar Akaun',
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isEn ? 'Create Account' : 'Daftar Akaun',
                   style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Serif')),
-              const SizedBox(height: 6),
-              Text(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      fontFamily: 'Serif',
+                      color: Color(0xFF162235),
+                      letterSpacing: -0.5),
+                ),
+                const SizedBox(height: 12),
+                Text(
                   isEn
                       ? 'Join us to make legal help accessible.'
                       : 'Sertai kami untuk bantuan undang-undang mudah.',
-                  style: const TextStyle(color: Colors.grey, fontSize: 14)),
-              const SizedBox(height: 32),
-              _buildField(
-                isEn ? 'Full Name' : 'Nama Penuh',
-                isEn ? 'Enter your full name' : 'Masukkan nama penuh anda',
-                _nameController,
-                icon: LucideIcons.user,
-                validator: (val) =>
-                    val!.isEmpty ? (isEn ? "Required" : "Wajib") : null,
-              ),
-              _buildField(
-                isEn ? 'Email Address' : 'Alamat E-mel',
-                'you@example.com',
-                _emailController,
-                keyboardType: TextInputType.emailAddress,
-                icon: LucideIcons.mail,
-                validator: (val) => !_isValidEmail(val!)
-                    ? (isEn ? "Invalid email" : "E-mel tidak sah")
-                    : null,
-              ),
-              _buildField(
-                isEn ? 'Phone Number' : 'Nombor Telefon',
-                '+60 12-345 6789',
-                _phoneController,
-                keyboardType: TextInputType.phone,
-                icon: LucideIcons.phone,
-                validator: (val) =>
-                    val!.isEmpty ? (isEn ? "Required" : "Wajib") : null,
-              ),
-              _buildPasswordField(
-                isEn ? 'Password' : 'Kata Laluan',
-                _passwordController,
-                _showPassword,
-                () => setState(() => _showPassword = !_showPassword),
-                validator: (val) => val!.length < 6
-                    ? (isEn ? "Min 6 characters" : "Min 6 aksara")
-                    : null,
-              ),
-              _buildPasswordField(
-                isEn ? 'Confirm Password' : 'Sahkan Kata Laluan',
-                _confirmController,
-                _showConfirm,
-                () => setState(() => _showConfirm = !_showConfirm),
-                validator: (val) => val!.isEmpty
-                    ? (isEn
-                        ? "Confirm your password"
-                        : "Sahkan kata laluan anda")
-                    : null,
-              ),
-              _buildTermsCheckbox(isEn),
-              const SizedBox(height: 24),
-              _buildSubmitButton(isEn),
-            ],
+                  style: TextStyle(
+                      color: Colors.blueGrey[400],
+                      fontSize: 15,
+                      fontFamily: 'Poppins'),
+                ),
+                const SizedBox(height: 48),
+                _buildField(
+                  label: isEn ? 'Full Name' : 'Nama Penuh',
+                  hint: isEn
+                      ? 'Enter your full name'
+                      : 'Masukkan nama penuh anda',
+                  controller: _nameController,
+                  icon: LucideIcons.user,
+                  validator: (val) =>
+                      val!.isEmpty ? (isEn ? "Required" : "Wajib") : null,
+                ),
+                _buildField(
+                  label: isEn ? 'Email Address' : 'Alamat E-mel',
+                  hint: 'you@example.com',
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  icon: LucideIcons.mail,
+                  validator: (val) => !_isValidEmail(val!)
+                      ? (isEn ? "Invalid email" : "E-mel tidak sah")
+                      : null,
+                ),
+                _buildField(
+                  label: isEn ? 'Phone Number' : 'Nombor Telefon',
+                  hint: '+60 12-345 6789',
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  icon: LucideIcons.phone,
+                  validator: (val) =>
+                      val!.isEmpty ? (isEn ? "Required" : "Wajib") : null,
+                ),
+                _buildPasswordField(
+                  label: isEn ? 'Password' : 'Kata Laluan',
+                  controller: _passwordController,
+                  isVisible: _showPassword,
+                  toggle: () => setState(() => _showPassword = !_showPassword),
+                  validator: (val) => val!.length < 6
+                      ? (isEn ? "Min 6 characters" : "Min 6 aksara")
+                      : null,
+                ),
+                _buildPasswordField(
+                  label: isEn ? 'Confirm Password' : 'Sahkan Kata Laluan',
+                  controller: _confirmController,
+                  isVisible: _showConfirm,
+                  toggle: () => setState(() => _showConfirm = !_showConfirm),
+                  validator: (val) => val!.isEmpty
+                      ? (isEn
+                          ? "Confirm your password"
+                          : "Sahkan kata laluan anda")
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                _buildTermsCheckbox(isEn),
+                const SizedBox(height: 40),
+                _buildSubmitButton(isEn),
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildField(
-      String label, String hint, TextEditingController controller,
-      {TextInputType? keyboardType,
-      IconData? icon,
-      String? Function(String?)? validator}) {
+  Widget _buildField({
+    required String label,
+    required String hint,
+    required TextEditingController controller,
+    TextInputType? keyboardType,
+    required IconData icon,
+    String? Function(String?)? validator,
+  }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style:
-                  const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 8),
+          _buildLabel(label),
+          const SizedBox(height: 10),
           TextFormField(
             controller: controller,
             keyboardType: keyboardType,
             validator: validator,
-            decoration: _inputDecoration(hint).copyWith(
-              prefixIcon: icon != null ? Icon(icon, size: 18) : null,
-            ),
+            style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w500,
+                fontSize: 14),
+            decoration: _inputDecoration(hint, icon),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPasswordField(String label, TextEditingController controller,
-      bool isVisible, VoidCallback toggle,
-      {String? Function(String?)? validator}) {
+  Widget _buildPasswordField({
+    required String label,
+    required TextEditingController controller,
+    required bool isVisible,
+    required VoidCallback toggle,
+    String? Function(String?)? validator,
+  }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style:
-                  const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 8),
+          _buildLabel(label),
+          const SizedBox(height: 10),
           TextFormField(
             controller: controller,
             obscureText: !isVisible,
             validator: validator,
-            decoration: _inputDecoration('••••••••').copyWith(
-              prefixIcon: const Icon(LucideIcons.lock, size: 18),
+            style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w500,
+                fontSize: 14),
+            decoration: _inputDecoration('••••••••', LucideIcons.lock).copyWith(
               suffixIcon: IconButton(
                 icon: Icon(isVisible ? LucideIcons.eyeOff : LucideIcons.eye,
-                    size: 20),
+                    size: 20, color: Colors.blueGrey[300]),
                 onPressed: toggle,
               ),
             ),
@@ -258,25 +280,48 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(text,
+          style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: Colors.blueGrey[700],
+              letterSpacing: 0.5)),
+    );
+  }
+
   Widget _buildSuccessView(bool isEn) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(LucideIcons.checkCircle2, size: 64, color: Colors.green),
-            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                  color: Colors.green[50], shape: BoxShape.circle),
+              child: const Icon(LucideIcons.userCheck,
+                  size: 64, color: Colors.green),
+            ),
+            const SizedBox(height: 32),
             Text(isEn ? 'Account Created' : 'Akaun Dicipta',
                 style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Serif')),
-            const SizedBox(height: 8),
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    fontFamily: 'Serif',
+                    color: Color(0xFF162235))),
+            const SizedBox(height: 12),
             Text(
                 isEn
                     ? 'Welcome to Pocket Lawyer!'
                     : 'Selamat Datang ke Pocket Lawyer!',
-                style: const TextStyle(color: Colors.grey)),
+                style: TextStyle(
+                    color: Colors.blueGrey[400],
+                    fontSize: 16,
+                    fontFamily: 'Poppins')),
           ],
         ),
       ),
@@ -284,62 +329,85 @@ class _SignUpPageState extends State<SignUpPage> {
   }
 
   Widget _buildSubmitButton(bool isEn) {
-    return ElevatedButton(
-      onPressed: (_agreed && !_isLoading) ? _handleSubmit : null,
-      style: ElevatedButton.styleFrom(
-        minimumSize: const Size.fromHeight(56),
-        backgroundColor: const Color(0xFF162235),
-        foregroundColor: Colors.white,
-        disabledBackgroundColor: Colors.grey.shade300,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Hero(
+      tag: 'auth_btn',
+      child: ElevatedButton(
+        onPressed: (_agreed && !_isLoading) ? _handleSubmit : null,
+        style: ElevatedButton.styleFrom(
+          minimumSize: const Size.fromHeight(64),
+          backgroundColor: const Color(0xFF162235),
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: Colors.blueGrey[50],
+          elevation: 0,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+        child: _isLoading
+            ? const SizedBox(
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(
+                    color: Colors.white, strokeWidth: 3))
+            : Text(isEn ? 'Create Account' : 'Daftar Akaun',
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    fontFamily: 'Poppins')),
       ),
-      child: _isLoading
-          ? const SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(
-                  color: Colors.white, strokeWidth: 2))
-          : Text(isEn ? 'Create Account' : 'Daftar Akaun',
-              style: const TextStyle(fontWeight: FontWeight.bold)),
     );
   }
 
   Widget _buildTermsCheckbox(bool isEn) {
     return Row(
       children: [
-        Checkbox(
-          value: _agreed,
-          activeColor: const Color(0xFF162235),
-          onChanged: (val) => setState(() => _agreed = val ?? false),
+        SizedBox(
+          height: 24,
+          width: 24,
+          child: Checkbox(
+            value: _agreed,
+            activeColor: const Color(0xFF162235),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+            onChanged: (val) => setState(() => _agreed = val ?? false),
+          ),
         ),
+        const SizedBox(width: 12),
         Expanded(
           child: Text(
             isEn
-                ? 'I agree to the Terms of Service and Privacy Policy'
-                : 'Saya setuju dengan Terma Perkhidmatan dan Dasar Privasi',
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ? 'I agree to the Terms and Privacy Policy'
+                : 'Saya setuju dengan Terma dan Dasar Privasi',
+            style: TextStyle(
+                fontSize: 13,
+                color: Colors.blueGrey[500],
+                fontFamily: 'Poppins'),
           ),
         )
       ],
     );
   }
 
-  InputDecoration _inputDecoration(String hint) {
+  InputDecoration _inputDecoration(String hint, IconData icon) {
     return InputDecoration(
       hintText: hint,
+      hintStyle: TextStyle(color: Colors.blueGrey[200], fontSize: 14),
+      prefixIcon: Icon(icon, size: 20, color: const Color(0xFF162235)),
       filled: true,
-      fillColor: const Color(0xFFF8FAFC),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
       focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF162235))),
-      errorStyle: const TextStyle(fontSize: 11),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF162235), width: 2)),
+      errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 1)),
+      focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Colors.redAccent, width: 2)),
+      errorStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
     );
   }
 }

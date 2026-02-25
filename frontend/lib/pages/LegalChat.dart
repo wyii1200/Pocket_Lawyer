@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import '../services/history_service.dart';
-
-
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Message {
@@ -86,7 +84,6 @@ class _LegalChatPageState extends State<LegalChatPage> {
     _scrollToBottom();
 
     try {
-      // regular FirebaseFunctions.instance can be used if your function is deployed in the default region (us-central1)
       final result = await FirebaseFunctions.instanceFor(region: 'us-central1')
           .httpsCallable('legalChat')
           .call({'message': text, 'lang': _selectedLang});
@@ -105,19 +102,15 @@ class _LegalChatPageState extends State<LegalChatPage> {
 
       _scrollToBottom();
 
-      //save history to firestore
       await HistoryService.saveHistory(
         type: "Legal Chat",
-        summary: text.length > 40
-            ? "${text.substring(0, 40)}..."
-            : text,
+        summary: text.length > 40 ? "${text.substring(0, 40)}..." : text,
         metadata: {
           "question": text,
           "reply": result.data['reply'],
           "legalRef": result.data['legalRef'],
         },
       );
-
     } catch (e) {
       setState(() {
         _isTyping = false;
@@ -137,36 +130,39 @@ class _LegalChatPageState extends State<LegalChatPage> {
     bool isEn = _selectedLang == 'en';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F4F9),
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(LucideIcons.arrowLeft),
+          icon: const Icon(LucideIcons.chevronLeft, color: Color(0xFF162235)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          isEn ? 'Legal Chatbot' : 'Sembang Undang-undang',
+          isEn ? 'Legal Assistant' : 'Pembantu Undang-undang',
           style: const TextStyle(
-              fontFamily: 'Poppins', fontWeight: FontWeight.w600, fontSize: 18),
+              fontFamily: 'Poppins', fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(LucideIcons.trash2, size: 20),
+            icon: const Icon(LucideIcons.eraser, size: 20),
             onPressed: () =>
                 setState(() => _messages.removeRange(1, _messages.length)),
             tooltip: isEn ? 'Clear Chat' : 'Padam Sembang',
           )
         ],
         backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF162235),
-        elevation: 1,
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: const Color(0xFFE2E8F0), height: 1),
+        ),
       ),
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
               itemCount: _messages.length,
               itemBuilder: (context, index) =>
                   _buildChatBubble(_messages[index]),
@@ -185,24 +181,24 @@ class _LegalChatPageState extends State<LegalChatPage> {
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        width: MediaQuery.of(context).size.width * 0.8,
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        constraints:
+            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isUser ? const Color(0xFF162235) : Colors.white,
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(isUser ? 16 : 4),
-            bottomRight: Radius.circular(isUser ? 4 : 16),
+            topLeft: const Radius.circular(20),
+            topRight: const Radius.circular(20),
+            bottomLeft: Radius.circular(isUser ? 20 : 4),
+            bottomRight: Radius.circular(isUser ? 4 : 20),
           ),
           boxShadow: [
             if (!isUser)
               BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4)),
           ],
         ),
         child: Column(
@@ -211,22 +207,43 @@ class _LegalChatPageState extends State<LegalChatPage> {
             Text(
               msg.content,
               style: TextStyle(
-                color: isUser ? Colors.white : Colors.black87,
+                color: isUser ? Colors.white : const Color(0xFF1E293B),
                 fontSize: 14,
                 fontFamily: 'Poppins',
+                height: 1.5,
               ),
             ),
             if (msg.legalRef != null) ...[
-              const SizedBox(height: 8),
-              const Divider(height: 1, color: Color(0xFFE2E8F0)),
-              const SizedBox(height: 4),
-              Text(
-                "${_selectedLang == 'en' ? 'Reference' : 'Rujukan'}: ${msg.legalRef}",
-                style: const TextStyle(
-                    fontSize: 10,
-                    color: Colors.blueGrey,
-                    fontWeight: FontWeight.w600,
-                    fontStyle: FontStyle.italic),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: isUser
+                      ? Colors.white.withOpacity(0.1)
+                      : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(LucideIcons.scale,
+                        size: 14,
+                        color:
+                            isUser ? Colors.white70 : const Color(0xFF162235)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "${_selectedLang == 'en' ? 'Reference' : 'Rujukan'}: ${msg.legalRef}",
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isUser ? Colors.white70 : Colors.blueGrey[700],
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ]
           ],
@@ -238,45 +255,41 @@ class _LegalChatPageState extends State<LegalChatPage> {
   Widget _buildQuickQuestions(bool isEn) {
     final questions = _getQuickQuestions(isEn);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            isEn ? 'Quick Questions:' : 'Soalan Pantas:',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.black54,
-              fontFamily: 'Poppins',
-            ),
+            isEn ? 'Try asking:' : 'Cuba tanya:',
+            style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[600],
+                fontFamily: 'Poppins'),
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: questions.map((question) {
-              return InkWell(
-                onTap: () => _sendMessage(question),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: questions.map((question) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ActionChip(
+                    label: Text(question),
+                    onPressed: () => _sendMessage(question),
+                    backgroundColor: Colors.white,
+                    labelStyle: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF162235),
+                        fontFamily: 'Poppins'),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(color: Color(0xFFE2E8F0))),
                   ),
-                  child: Text(
-                    question,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF162235),
-                      fontFamily: 'Poppins',
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
+                );
+              }).toList(),
+            ),
           ),
         ],
       ),
@@ -285,38 +298,41 @@ class _LegalChatPageState extends State<LegalChatPage> {
 
   Widget _buildTypingIndicator() {
     return Padding(
-      padding: const EdgeInsets.only(left: 20, bottom: 12),
+      padding: const EdgeInsets.only(left: 20, bottom: 20),
       child: Row(
-        children: List.generate(
-            3,
-            (index) => Container(
-                  width: 6,
-                  height: 6,
-                  margin: const EdgeInsets.symmetric(horizontal: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.6),
-                    shape: BoxShape.circle,
-                  ),
-                )),
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+                color: Colors.white, borderRadius: BorderRadius.circular(12)),
+            child: Row(
+              children: List.generate(
+                  3,
+                  (index) => Container(
+                        width: 5,
+                        height: 5,
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        decoration: const BoxDecoration(
+                            color: Color(0xFF162235), shape: BoxShape.circle),
+                      )),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildInputArea(bool isEn) {
     return Container(
-      padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          top: 16,
-          bottom: MediaQuery.of(context).padding.bottom + 16),
+      padding: EdgeInsets.fromLTRB(
+          20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -5))
         ],
       ),
       child: Row(
@@ -324,41 +340,30 @@ class _LegalChatPageState extends State<LegalChatPage> {
           Expanded(
             child: TextField(
               controller: _inputController,
-              onSubmitted: _sendMessage,
+              style: const TextStyle(fontFamily: 'Poppins', fontSize: 14),
               decoration: InputDecoration(
-                hintText: isEn
-                    ? 'Ask a legal question...'
-                    : 'Tanya soalan undang-undang...',
-                hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+                hintText: isEn ? 'Type a question...' : 'Taip soalan...',
                 filled: true,
-                fillColor: const Color(0xFFF8FAFC),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF162235)),
-                ),
+                fillColor: const Color(0xFFF1F5F9),
                 contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none),
               ),
             ),
           ),
           const SizedBox(width: 12),
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF162235),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              icon: const Icon(LucideIcons.send, size: 20),
-              onPressed: () => _sendMessage(_inputController.text),
-              color: Colors.white,
+          GestureDetector(
+            onTap: () => _sendMessage(_inputController.text),
+            child: Container(
+              height: 48,
+              width: 48,
+              decoration: BoxDecoration(
+                  color: const Color(0xFF162235),
+                  borderRadius: BorderRadius.circular(16)),
+              child:
+                  const Icon(LucideIcons.send, color: Colors.white, size: 20),
             ),
           ),
         ],

@@ -21,10 +21,10 @@ class _DashboardPageState extends State<DashboardPage> {
     _loadInitialData();
   }
 
+  // --- ORIGIN FUNCTIONS (UNTOUCHED) ---
   Future<void> _loadInitialData() async {
     final prefs = await SharedPreferences.getInstance();
     final user = FirebaseAuth.instance.currentUser;
-
     final savedLang = prefs.getString('app_language') ?? 'en';
 
     if (user != null) {
@@ -52,40 +52,61 @@ class _DashboardPageState extends State<DashboardPage> {
     setState(() => _selectedLang = lang);
   }
 
+  // --- ENHANCED UI MODAL ---
   void _showLanguagePicker() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: Colors.transparent, // Allow for custom shape
       builder: (context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(LucideIcons.globe),
-              title: const Text('English'),
-              trailing: _selectedLang == 'en'
-                  ? const Icon(Icons.check, color: Colors.green)
-                  : null,
-              onTap: () {
-                _changeLanguage('en');
-                Navigator.pop(context);
-              },
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 24),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-            ListTile(
-              leading: const Icon(LucideIcons.globe),
-              title: const Text('Bahasa Melayu'),
-              trailing: _selectedLang == 'ms'
-                  ? const Icon(Icons.check, color: Colors.green)
-                  : null,
-              onTap: () {
-                _changeLanguage('ms');
-                Navigator.pop(context);
-              },
-            ),
+            _buildLanguageOption('English', 'en'),
+            const SizedBox(height: 8),
+            _buildLanguageOption('Bahasa Melayu', 'ms'),
+            const SizedBox(height: 20),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageOption(String label, String code) {
+    bool isSelected = _selectedLang == code;
+    return Material(
+      color: isSelected
+          ? const Color(0xFF162235).withOpacity(0.05)
+          : Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        leading: Icon(LucideIcons.globe,
+            color: isSelected ? const Color(0xFF162235) : Colors.grey),
+        title: Text(label,
+            style: TextStyle(
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontFamily: 'Poppins')),
+        trailing: isSelected
+            ? const Icon(Icons.check_circle, color: Color(0xFF162235))
+            : null,
+        onTap: () {
+          _changeLanguage(code);
+          Navigator.pop(context);
+        },
       ),
     );
   }
@@ -95,128 +116,182 @@ class _DashboardPageState extends State<DashboardPage> {
     bool isEn = _selectedLang == 'en';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F4F9),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      backgroundColor:
+          const Color(0xFFF8FAFC), // Slightly lighter/cleaner background
+      body: Stack(
+        // Using Stack for a subtle background accent
+        children: [
+          Positioned(
+            top: -100,
+            right: -50,
+            child: CircleAvatar(
+              radius: 150,
+              backgroundColor: const Color(0xFF162235).withOpacity(0.03),
+            ),
+          ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  // --- HEADER SECTION ---
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        isEn ? 'Hello, $_userName' : 'Helo, $_userName',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Poppins',
-                          color: Color(0xFF1A1F2C),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isEn
+                                  ? 'Hello, $_userName 👋'
+                                  : 'Helo, $_userName 👋',
+                              style: const TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w800,
+                                fontFamily: 'Poppins',
+                                color: Color(0xFF1A1F2C),
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF162235).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                isEn
+                                    ? 'YOUR LEGAL COMPANION'
+                                    : 'TEMAN UNDANG-UNDANG ANDA',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Color(0xFF162235),
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.2,
+                                  fontFamily: 'Poppins',
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        isEn
-                            ? 'YOUR LEGAL COMPANION'
-                            : 'TEMAN UNDANG-UNDANG ANDA',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 1.5,
-                          fontFamily: 'Poppins',
-                        ),
-                      ),
+                      _buildIconButton(
+                          LucideIcons.languages, _showLanguagePicker),
                     ],
                   ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: IconButton(
-                      icon: const Icon(LucideIcons.languages,
-                          color: Color(0xFF1A1F2C), size: 20),
-                      onPressed: _showLanguagePicker,
+                  const SizedBox(height: 40),
+
+                  // --- WELCOME TEXT ---
+                  Text(
+                    isEn
+                        ? "How can we help you?"
+                        : "Bagaimana kami boleh membantu?",
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      fontFamily: 'Poppins',
+                      color: Color(0xFF334155),
                     ),
                   ),
+                  const SizedBox(height: 20),
+
+                  // --- FEATURES GRID/LIST ---
+                  _buildFeatureButton(
+                    context,
+                    icon: LucideIcons.fileSearch,
+                    title: isEn ? 'Analyze Document' : 'Analisis Dokumen',
+                    description: isEn
+                        ? 'Understand risks in your contracts.'
+                        : 'Fahami risiko dalam kontrak anda.',
+                    route: '/analyze',
+                    accentColor: const Color(0xFF162235),
+                  ),
+                  _buildFeatureButton(
+                    context,
+                    icon: LucideIcons.messageSquare,
+                    title: isEn ? 'Legal Chat' : 'Sembang Undang-Undang',
+                    description: isEn
+                        ? 'Ask questions about your rights.'
+                        : 'Tanya soalan tentang hak anda.',
+                    route: '/chat',
+                    accentColor: Colors.indigo,
+                  ),
+                  _buildFeatureButton(
+                    context,
+                    icon: LucideIcons.fileText,
+                    title: isEn ? 'Generate Letter' : 'Jana Surat',
+                    description: isEn
+                        ? 'Create formal complaint drafts.'
+                        : 'Buat draf aduan rasmi.',
+                    route: '/letter',
+                    accentColor: const Color(0xFFE67E22),
+                  ),
+                  _buildFeatureButton(
+                    context,
+                    icon: LucideIcons.bookOpen,
+                    title: isEn ? 'Know Your Rights' : 'Kenali Hak Anda',
+                    description: isEn
+                        ? 'Learn about local laws easily.'
+                        : 'Pelajari undang-undang tempatan.',
+                    route: '/rights',
+                    accentColor: const Color(0xFF0D9488),
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // --- DISCLAIMER ---
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        isEn
+                            ? 'FOR EDUCATIONAL PURPOSES ONLY'
+                            : 'UNTUK TUJUAN PENDIDIKAN SAHAJA',
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: Colors.grey[600],
+                          letterSpacing: 0.5,
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                 ],
               ),
-              const SizedBox(height: 40),
-              Text(
-                isEn
-                    ? "How can we help you?"
-                    : "Bagaimana kami boleh membantu?",
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'Poppins',
-                  color: Color(0xFF1A1F2C),
-                ),
-              ),
-              const SizedBox(height: 20),
-              _buildFeatureButton(
-                context,
-                icon: LucideIcons.fileSearch,
-                title: isEn ? 'Analyze Document' : 'Analisis Dokumen',
-                description: isEn
-                    ? 'Understand risks in your contracts.'
-                    : 'Fahami risiko dalam kontrak anda.',
-                route: '/analyze',
-                accentColor: const Color(0xFF162235),
-              ),
-              _buildFeatureButton(
-                context,
-                icon: LucideIcons.messageSquare,
-                title: isEn ? 'Legal Chat' : 'Sembang Undang-Undang',
-                description: isEn
-                    ? 'Ask questions about your rights.'
-                    : 'Tanya soalan tentang hak anda.',
-                route: '/chat',
-                accentColor: Colors.purple,
-              ),
-              _buildFeatureButton(
-                context,
-                icon: LucideIcons.fileText,
-                title: isEn ? 'Generate Letter' : 'Jana Surat',
-                description: isEn
-                    ? 'Create formal complaint drafts.'
-                    : 'Buat draf aduan rasmi.',
-                route: '/letter',
-                accentColor: Colors.orange,
-              ),
-              _buildFeatureButton(
-                context,
-                icon: LucideIcons.bookOpen,
-                title: isEn ? 'Know Your Rights' : 'Kenali Hak Anda',
-                description: isEn
-                    ? 'Learn about local laws easily.'
-                    : 'Pelajari undang-undang tempatan.',
-                route: '/rights',
-                accentColor: Colors.teal,
-              ),
-              const SizedBox(height: 32),
-              Center(
-                child: Text(
-                  isEn
-                      ? 'FOR EDUCATIONAL PURPOSES ONLY'
-                      : 'UNTUK TUJUAN PENDIDIKAN SAHAJA',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    color: Colors.grey,
-                    letterSpacing: 0.5,
-                    fontFamily: 'Poppins',
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIconButton(IconData icon, VoidCallback onPressed) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: IconButton(
+        icon: Icon(icon, color: const Color(0xFF1A1F2C), size: 22),
+        onPressed: onPressed,
       ),
     );
   }
@@ -229,41 +304,45 @@ class _DashboardPageState extends State<DashboardPage> {
     required String route,
     required Color accentColor,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Material(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 18),
+      decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withOpacity(0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
         child: InkWell(
           onTap: () => Navigator.pushNamed(context, route),
-          borderRadius: BorderRadius.circular(16),
-          splashColor: accentColor.withOpacity(0.05),
-          highlightColor: Colors.transparent,
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
+          borderRadius: BorderRadius.circular(24),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
             child: Row(
               children: [
                 Container(
-                  height: 54,
-                  width: 54,
+                  height: 60,
+                  width: 60,
                   decoration: BoxDecoration(
-                    color: accentColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        accentColor.withOpacity(0.2),
+                        accentColor.withOpacity(0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(18),
                   ),
-                  child: Icon(icon, color: accentColor, size: 26),
+                  child: Icon(icon, color: accentColor, size: 28),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 20),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -271,10 +350,10 @@ class _DashboardPageState extends State<DashboardPage> {
                       Text(
                         title,
                         style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
                           fontFamily: 'Poppins',
-                          color: Color(0xFF1A1F2C),
+                          color: Color(0xFF1E293B),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -282,18 +361,18 @@ class _DashboardPageState extends State<DashboardPage> {
                         description,
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.grey[600],
+                          color: Colors.grey[500],
                           fontFamily: 'Poppins',
-                          height: 1.4,
+                          height: 1.3,
                         ),
                       ),
                     ],
                   ),
                 ),
                 Icon(
-                  Icons.arrow_forward_ios,
-                  size: 14,
-                  color: Colors.grey[400],
+                  Icons.arrow_forward_ios_rounded,
+                  size: 16,
+                  color: Colors.grey[300],
                 ),
               ],
             ),
