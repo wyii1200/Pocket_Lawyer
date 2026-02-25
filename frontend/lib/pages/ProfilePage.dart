@@ -66,6 +66,27 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _updateField(String field, String newValue) async {
+    String uid = FirebaseAuth.instance.currentUser!.uid;
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .update({field: newValue});
+      await _loadUserData();
+    } catch (e) {
+      debugPrint("Update failed: $e");
+    }
+  }
+
+  Future<void> _logout() async {
+    await FirebaseAuth.instance.signOut();
+    if (mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    }
+  }
+
+  // --- UI DIALOG ---
   void _showEditDialog(String field, String currentValue, String dbField) {
     TextEditingController controller =
         TextEditingController(text: currentValue);
@@ -78,31 +99,39 @@ class _ProfilePageState extends State<ProfilePage> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-              title: Text(isEn ? "Edit $field" : "Sunting $field",
+                  borderRadius: BorderRadius.circular(24)),
+              title: Text(isEn ? "Update $field" : "Kemaskini $field",
                   style: const TextStyle(
-                      fontFamily: 'Poppins', fontWeight: FontWeight.bold)),
+                      fontWeight: FontWeight.bold, fontFamily: 'Poppins')),
               content: TextField(
                 controller: controller,
                 autofocus: true,
+                style: const TextStyle(fontFamily: 'Poppins'),
                 decoration: InputDecoration(
+                  filled: true,
+                  fillColor: const Color(0xFFF1F5F9),
                   hintText: isEn ? "Enter your $field" : "Masukkan $field anda",
                   border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none),
                 ),
               ),
               actions: [
                 TextButton(
                   onPressed: isSaving ? null : () => Navigator.pop(context),
-                  child: Text(isEn ? "Cancel" : "Batal"),
+                  child: Text(isEn ? "Cancel" : "Batal",
+                      style: const TextStyle(color: Colors.grey)),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF162235),
                     foregroundColor: Colors.white,
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   onPressed: isSaving
                       ? null
@@ -127,26 +156,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Future<void> _updateField(String field, String newValue) async {
-    String uid = FirebaseAuth.instance.currentUser!.uid;
-    try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .update({field: newValue});
-      await _loadUserData();
-    } catch (e) {
-      debugPrint("Update failed: $e");
-    }
-  }
-
-  Future<void> _logout() async {
-    await FirebaseAuth.instance.signOut();
-    if (mounted) {
-      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     bool isEn = _selectedLang == 'en';
@@ -154,87 +163,131 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: Text(isEn ? 'Profile' : 'Profil',
-            style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(isEn ? 'Account Profile' : 'Profil Akaun',
+            style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+                fontSize: 18)),
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF162235),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: const Color(0xFFE2E8F0), height: 1),
+        ),
       ),
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: Color(0xFF162235)))
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
               child: Column(
                 children: [
-                  // 1. HEADER SECTION
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: const Color(0xFFEDF2F7),
-                    child: Icon(LucideIcons.user,
-                        size: 48, color: const Color(0xFF162235)),
+                  // --- 1. PROFILE HEADER ---
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: const Color(0xFF162235).withOpacity(0.1),
+                          width: 2),
+                    ),
+                    child: CircleAvatar(
+                      radius: 54,
+                      backgroundColor: const Color(0xFF162235),
+                      child: Text(
+                        fullName.isNotEmpty ? fullName[0].toUpperCase() : "U",
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   Text(fullName,
                       style: const TextStyle(
-                          fontSize: 22, fontWeight: FontWeight.bold)),
-                  Text(email,
-                      style: const TextStyle(color: Colors.grey, fontSize: 14)),
-                  const SizedBox(height: 32),
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          fontFamily: 'Poppins',
+                          color: Color(0xFF1A1F2C))),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                        color: const Color(0xFF162235).withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(20)),
+                    child: Text(email,
+                        style: const TextStyle(
+                            color: Color(0xFF162235),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500)),
+                  ),
 
-                  // 2. PERSONAL INFO SECTION
+                  const SizedBox(height: 40),
+
+                  // --- 2. INFORMATION SECTION ---
                   _buildSectionTitle(
-                      isEn ? "Personal Information" : "Maklumat Peribadi"),
+                      isEn ? "PERSONAL DETAILS" : "MAKLUMAT PERIBADI"),
                   _buildInfoCard(
                     icon: LucideIcons.user,
-                    label: isEn ? 'Full Name' : 'Nama Penuh',
+                    label: isEn ? 'Display Name' : 'Nama Paparan',
                     value: fullName,
                     dbField: 'fullName',
+                    isEn: isEn,
                   ),
-                  const SizedBox(height: 12),
                   _buildInfoCard(
                     icon: LucideIcons.phone,
                     label: isEn ? 'Phone Number' : 'Nombor Telefon',
                     value: phone,
                     dbField: 'phone',
+                    isEn: isEn,
                   ),
-                  const SizedBox(height: 12),
                   _buildInfoCard(
                     icon: LucideIcons.mapPin,
-                    label: isEn ? 'Address' : 'Alamat',
+                    label: isEn ? 'Residential Address' : 'Alamat Kediaman',
                     value: address,
                     dbField: 'address',
+                    isEn: isEn,
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
 
-                  // 3. SETTINGS SECTION (Language Picker)
-                  _buildSectionTitle(isEn ? "Settings" : "Tetapan"),
+                  // --- 3. PREFERENCES SECTION ---
+                  _buildSectionTitle(
+                      isEn ? "APP PREFERENCES" : "TETAPAN APLIKASI"),
                   _buildLanguageToggle(isEn),
 
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 48),
 
-                  // 4. LOGOUT BUTTON
-                  OutlinedButton.icon(
+                  // --- 4. LOGOUT ---
+                  ElevatedButton.icon(
                     onPressed: _logout,
                     icon: const Icon(LucideIcons.logOut, size: 18),
-                    label: Text(isEn ? 'Log Out' : 'Log Keluar'),
-                    style: OutlinedButton.styleFrom(
+                    label: Text(isEn ? 'Sign Out' : 'Log Keluar'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
                       foregroundColor: Colors.redAccent,
-                      side: const BorderSide(color: Colors.redAccent),
-                      minimumSize: const Size.fromHeight(54),
+                      elevation: 0,
+                      side:
+                          const BorderSide(color: Colors.redAccent, width: 1.5),
+                      minimumSize: const Size.fromHeight(56),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(16)),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 24),
                   Text(
-                    isEn
-                        ? "Version 1.0.0 (KitaHack 2026)"
-                        : "Versi 1.0.0 (KitaHack 2026)",
-                    style: const TextStyle(color: Colors.grey, fontSize: 10),
+                    "Pocket Lawyer v1.0.0",
+                    style: TextStyle(
+                        color: Colors.blueGrey[200],
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1),
                   ),
+                  const SizedBox(height: 80),
                 ],
               ),
             ),
@@ -245,42 +298,65 @@ class _ProfilePageState extends State<ProfilePage> {
     return Align(
       alignment: Alignment.centerLeft,
       child: Padding(
-        padding: const EdgeInsets.only(left: 4, bottom: 8),
+        padding: const EdgeInsets.only(left: 4, bottom: 12, top: 8),
         child: Text(title,
             style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Colors.blueGrey,
-                letterSpacing: 0.5)),
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF94A3B8),
+                letterSpacing: 1.5)),
       ),
     );
   }
 
   Widget _buildLanguageToggle(bool isEn) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Row(
         children: [
-          const Icon(LucideIcons.globe, size: 20, color: Color(0xFF162235)),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(12)),
+            child: const Icon(LucideIcons.languages,
+                size: 20, color: Color(0xFF162235)),
+          ),
           const SizedBox(width: 16),
           Expanded(
-              child: Text(isEn ? "Language" : "Bahasa",
-                  style: const TextStyle(fontWeight: FontWeight.w600))),
-          DropdownButton<String>(
-            value: _selectedLang,
-            underline: const SizedBox(),
-            items: const [
-              DropdownMenuItem(value: 'en', child: Text("English")),
-              DropdownMenuItem(value: 'ms', child: Text("B. Melayu")),
-            ],
-            onChanged: (val) {
-              if (val != null) _changeLanguage(val);
-            },
+              child: Text(isEn ? "Application Language" : "Bahasa Aplikasi",
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 14))),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(10)),
+            child: DropdownButton<String>(
+              value: _selectedLang,
+              underline: const SizedBox(),
+              icon: const Icon(LucideIcons.chevronDown, size: 14),
+              items: const [
+                DropdownMenuItem(
+                    value: 'en',
+                    child: Text("EN",
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.bold))),
+                DropdownMenuItem(
+                    value: 'ms',
+                    child: Text("MS",
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.bold))),
+              ],
+              onChanged: (val) {
+                if (val != null) _changeLanguage(val);
+              },
+            ),
           ),
         ],
       ),
@@ -292,49 +368,58 @@ class _ProfilePageState extends State<ProfilePage> {
     required String label,
     required String value,
     required String dbField,
+    required bool isEn,
   }) {
-    return InkWell(
-      onTap: () => _showEditDialog(label, value, dbField),
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F4F9),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, size: 20, color: const Color(0xFF162235)),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label,
-                      style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                  const SizedBox(height: 4),
-                  Text(
-                    value.isEmpty
-                        ? (_selectedLang == 'en'
-                            ? "Tap to add"
-                            : "Tambah maklumat")
-                        : value,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 15),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showEditDialog(label, value, dbField),
+          borderRadius: BorderRadius.circular(18),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12)),
+                  child: Icon(icon, size: 20, color: const Color(0xFF162235)),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(label,
+                          style: const TextStyle(
+                              color: Color(0xFF94A3B8),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 2),
+                      Text(
+                        value.isEmpty
+                            ? (isEn ? "Not set" : "Belum ditetapkan")
+                            : value,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: Color(0xFF1E293B)),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                Icon(LucideIcons.pencil, size: 14, color: Colors.blueGrey[100]),
+              ],
             ),
-            const Icon(LucideIcons.chevronRight, size: 16, color: Colors.grey),
-          ],
+          ),
         ),
       ),
     );

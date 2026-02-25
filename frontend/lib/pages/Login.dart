@@ -43,44 +43,58 @@ class _LoginPageState extends State<LoginPage> {
   void _showLanguagePicker() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 24),
+              decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(10)),
+            ),
             Text(
               _selectedLang == 'en' ? 'Select Language' : 'Pilih Bahasa',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Poppins'),
             ),
-            const SizedBox(height: 16),
-            ListTile(
-              leading: const Icon(LucideIcons.globe),
-              title: const Text('English'),
-              trailing: _selectedLang == 'en'
-                  ? const Icon(Icons.check_circle, color: Color(0xFF162235))
-                  : null,
-              onTap: () {
-                _changeLanguage('en');
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(LucideIcons.globe),
-              title: const Text('Bahasa Melayu'),
-              trailing: _selectedLang == 'ms'
-                  ? const Icon(Icons.check_circle, color: Color(0xFF162235))
-                  : null,
-              onTap: () {
-                _changeLanguage('ms');
-                Navigator.pop(context);
-              },
-            ),
+            const SizedBox(height: 20),
+            _buildLangTile('English', 'en'),
+            _buildLangTile('Bahasa Melayu', 'ms'),
+            const SizedBox(height: 20),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildLangTile(String label, String code) {
+    bool isSelected = _selectedLang == code;
+    return ListTile(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      tileColor: isSelected ? const Color(0xFF162235).withOpacity(0.05) : null,
+      leading: Icon(LucideIcons.globe,
+          color: isSelected ? const Color(0xFF162235) : Colors.grey),
+      title: Text(label,
+          style: TextStyle(
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+      trailing: isSelected
+          ? const Icon(Icons.check_circle, color: Color(0xFF162235))
+          : null,
+      onTap: () {
+        _changeLanguage(code);
+        Navigator.pop(context);
+      },
     );
   }
 
@@ -95,7 +109,6 @@ class _LoginPageState extends State<LoginPage> {
           : 'Sila isi semua ruangan');
       return;
     }
-
     if (!_isValidEmail(_emailController.text.trim())) {
       _showSnackBar(_selectedLang == 'en'
           ? 'Enter a valid email'
@@ -104,16 +117,12 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     setState(() => _isLoading = true);
-
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/main');
-      }
+      if (mounted) Navigator.pushReplacementNamed(context, '/main');
     } on FirebaseAuthException catch (e) {
       String message =
           _selectedLang == 'en' ? 'An error occurred' : 'Ralat berlaku';
@@ -132,106 +141,109 @@ class _LoginPageState extends State<LoginPage> {
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: const Color(0xFF162235),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    bool isEn = _selectedLang == 'en';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: IconButton(
-                      icon: const Icon(LucideIcons.languages,
-                          size: 24, color: Color(0xFF162235)),
-                      onPressed: _showLanguagePicker,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildLogo(),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Pocket Lawyer',
-                    style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Serif'),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _selectedLang == 'en'
-                        ? 'Making Law Simple for Everyone'
-                        : 'Memudahkan Undang-Undang untuk Semua',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.grey, fontSize: 14),
-                  ),
-                  const SizedBox(height: 48),
-                  _buildLabel(
-                      _selectedLang == 'en' ? 'Email Address' : 'Alamat E-mel'),
-                  TextField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: _inputDecoration('you@example.com'),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildLabel(
-                      _selectedLang == 'en' ? 'Password' : 'Kata Laluan'),
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: !_showPassword,
-                    decoration: _inputDecoration('••••••••').copyWith(
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                            _showPassword
-                                ? LucideIcons.eyeOff
-                                : LucideIcons.eye,
-                            size: 20),
-                        onPressed: () =>
-                            setState(() => _showPassword = !_showPassword),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  _buildLoginButton(),
-                  const SizedBox(height: 16),
-                  OutlinedButton(
-                    onPressed: () => Navigator.pushNamed(context, '/signup'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(56),
-                      side: const BorderSide(
-                          color: Color(0xFF162235), width: 1.5),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: Text(
-                      _selectedLang == 'en' ? 'Create Account' : 'Daftar Akaun',
-                      style: const TextStyle(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: _buildHeaderIcon(
+                      LucideIcons.languages, _showLanguagePicker),
+                ),
+                const SizedBox(height: 20),
+                Center(
+                  child: Column(
+                    children: [
+                      _buildLogo(),
+                      const SizedBox(height: 32),
+                      const Text(
+                        'Pocket Lawyer',
+                        style: TextStyle(
+                          fontSize: 36,
+                          fontWeight: FontWeight.w900,
+                          fontFamily: 'Serif',
                           color: Color(0xFF162235),
-                          fontWeight: FontWeight.bold),
-                    ),
+                          letterSpacing: -1,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        isEn
+                            ? 'Making Law Simple for Everyone'
+                            : 'Memudahkan Undang-Undang untuk Semua',
+                        style: TextStyle(
+                            color: Colors.grey[400],
+                            fontSize: 14,
+                            fontFamily: 'Poppins'),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  TextButton(
+                ),
+                const SizedBox(height: 56),
+                _buildLabel(isEn ? 'Email Address' : 'Alamat E-mel'),
+                _buildTextField(
+                  controller: _emailController,
+                  hint: 'you@example.com',
+                  icon: LucideIcons.mail,
+                  type: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 24),
+                _buildLabel(isEn ? 'Password' : 'Kata Laluan'),
+                _buildTextField(
+                  controller: _passwordController,
+                  hint: '••••••••',
+                  icon: LucideIcons.lock,
+                  obscure: !_showPassword,
+                  suffix: IconButton(
+                    icon: Icon(
+                        _showPassword ? LucideIcons.eyeOff : LucideIcons.eye,
+                        size: 20,
+                        color: Colors.grey[400]),
+                    onPressed: () =>
+                        setState(() => _showPassword = !_showPassword),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
                     onPressed: () =>
                         Navigator.pushNamed(context, '/forgot-password'),
                     child: Text(
-                      _selectedLang == 'en'
-                          ? 'Forgot Password?'
-                          : 'Lupa Kata Laluan?',
-                      style: const TextStyle(color: Colors.grey),
+                      isEn ? 'Forgot Password?' : 'Lupa Kata Laluan?',
+                      style: TextStyle(
+                          color: Colors.grey[500],
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'Poppins'),
                     ),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 32),
+                _buildLoginButton(isEn),
+                const SizedBox(height: 20),
+                _buildSignUpButton(isEn),
+                const SizedBox(height: 40),
+              ],
             ),
           ),
         ),
@@ -239,76 +251,132 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildLogo() {
+  Widget _buildHeaderIcon(IconData icon, VoidCallback onPressed) {
     return Container(
-      height: 80,
-      width: 80,
       decoration: BoxDecoration(
-        color: const Color(0xFF162235),
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 5))
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
         ],
       ),
-      child: const Icon(LucideIcons.scale, color: Colors.white, size: 40),
+      child: IconButton(
+          icon: Icon(icon, color: const Color(0xFF162235), size: 22),
+          onPressed: onPressed),
     );
   }
 
-  Widget _buildLoginButton() {
-    return ElevatedButton(
-      onPressed: _isLoading ? null : _handleLogin,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF162235),
-        foregroundColor: Colors.white,
-        minimumSize: const Size.fromHeight(56),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        elevation: 2,
+  Widget _buildLogo() {
+    return Container(
+      height: 90,
+      width: 90,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF162235), Color(0xFF2C3E50)],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+              color: const Color(0xFF162235).withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10))
+        ],
       ),
-      child: _isLoading
-          ? const SizedBox(
-              height: 24,
-              width: 24,
-              child: CircularProgressIndicator(
-                  color: Colors.white, strokeWidth: 2.5))
-          : Text(
-              _selectedLang == 'en' ? 'Login' : 'Log Masuk',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
+      child: const Icon(LucideIcons.scale, color: Colors.white, size: 44),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    bool obscure = false,
+    Widget? suffix,
+    TextInputType type = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      keyboardType: type,
+      style:
+          const TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w500),
+      decoration: InputDecoration(
+        hintText: hint,
+        prefixIcon: Icon(icon, size: 20, color: const Color(0xFF162235)),
+        suffixIcon: suffix,
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFF162235), width: 2),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoginButton(bool isEn) {
+    return Hero(
+      tag: 'auth_btn',
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _handleLogin,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF162235),
+          foregroundColor: Colors.white,
+          minimumSize: const Size.fromHeight(64),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          elevation: 0,
+        ),
+        child: _isLoading
+            ? const SizedBox(
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(
+                    color: Colors.white, strokeWidth: 3))
+            : Text(isEn ? 'Sign In' : 'Log Masuk',
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    fontFamily: 'Poppins')),
+      ),
+    );
+  }
+
+  Widget _buildSignUpButton(bool isEn) {
+    return OutlinedButton(
+      onPressed: () => Navigator.pushNamed(context, '/signup'),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(64),
+        side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      child: Text(
+        isEn ? 'Create an Account' : 'Daftar Akaun',
+        style: const TextStyle(
+            color: Color(0xFF162235),
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Poppins'),
+      ),
     );
   }
 
   Widget _buildLabel(String text) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(text,
-            style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1E293B))),
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-      enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-      focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFF162235), width: 2)),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10, left: 4),
+      child: Text(text,
+          style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF64748B),
+              letterSpacing: 0.5)),
     );
   }
 }

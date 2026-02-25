@@ -69,21 +69,35 @@ class PocketLawyerApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF162235),
           primary: const Color(0xFF162235),
-          surface: const Color(0xFFF1F4F9),
+          surface: Colors.white,
         ),
-        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
+        textTheme:
+            GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme).apply(
+          bodyColor: const Color(0xFF1A1F2C),
+          displayColor: const Color(0xFF162235),
+        ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
-          elevation: 0.5,
+          elevation: 0,
           centerTitle: true,
+          iconTheme: IconThemeData(color: Color(0xFF162235)),
           titleTextStyle: TextStyle(
-            fontFamily: 'Poppins',
+            color: Color(0xFF162235),
             fontWeight: FontWeight.bold,
             fontSize: 18,
-            color: Color(0xFF162235),
+            fontFamily: 'Poppins',
+          ),
+        ),
+        cardTheme: CardThemeData(
+          color: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: Color(0xFFE2E8F0)),
           ),
         ),
       ),
@@ -134,19 +148,52 @@ class LoadingSplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF162235),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Using the scale icon for the splash screen
-            const Icon(Icons.scale, color: Colors.white, size: 80),
-            const SizedBox(height: 32),
-            const CircularProgressIndicator(
-              color: Colors.white,
-              strokeWidth: 3,
+      body: Stack(
+        children: [
+          Positioned(
+            bottom: -50,
+            left: -50,
+            child: CircleAvatar(
+              radius: 100,
+              backgroundColor: Colors.white.withOpacity(0.03),
             ),
-          ],
-        ),
+          ),
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(32),
+                  ),
+                  child: const Icon(Icons.scale, color: Colors.white, size: 72),
+                ),
+                const SizedBox(height: 32),
+                const Text(
+                  "POCKET LAWYER",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontFamily: 'Serif',
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 4,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 48),
+                const SizedBox(
+                  width: 40,
+                  child: LinearProgressIndicator(
+                    color: Colors.white,
+                    backgroundColor: Colors.white12,
+                    borderRadius: BorderRadius.all(Radius.circular(10)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
