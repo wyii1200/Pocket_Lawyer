@@ -1,0 +1,19 @@
+{
+  "name": "documents/1771853467285.jpg",
+  "bucket": "pocketlawyer-ai-2025.firebasestorage.app",
+  "metageneration": 1,
+  "generation": 1771853467691,
+  "contentType": "image/jpeg",
+  "storageClass": "STANDARD",
+  "contentDisposition": "inline",
+  "downloadTokens": [
+    "b5fc8c18-fc80-424f-b82b-657db2e5824f"
+  ],
+  "etag": "yf64qoGRjdeufBsM9eOY7huo0k0",
+  "customMetadata": {},
+  "timeCreated": "2026-02-23T13:31:07.691Z",
+  "updated": "2026-02-23T13:31:07.691Z",
+  "size": 221058,
+  "md5Hash": "vupXA3ORKY28qZ+bNw/yzA==",
+  "crc32c": "2571381733"
+}
