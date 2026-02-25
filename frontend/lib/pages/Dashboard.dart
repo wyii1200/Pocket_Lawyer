@@ -21,7 +21,6 @@ class _DashboardPageState extends State<DashboardPage> {
     _loadInitialData();
   }
 
-  // --- ORIGIN FUNCTIONS (UNTOUCHED) ---
   Future<void> _loadInitialData() async {
     final prefs = await SharedPreferences.getInstance();
     final user = FirebaseAuth.instance.currentUser;
@@ -52,11 +51,10 @@ class _DashboardPageState extends State<DashboardPage> {
     setState(() => _selectedLang = lang);
   }
 
-  // --- ENHANCED UI MODAL ---
   void _showLanguagePicker() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent, // Allow for custom shape
+      backgroundColor: Colors.transparent, 
       builder: (context) => Container(
         decoration: const BoxDecoration(
           color: Colors.white,
@@ -117,9 +115,8 @@ class _DashboardPageState extends State<DashboardPage> {
 
     return Scaffold(
       backgroundColor:
-          const Color(0xFFF8FAFC), // Slightly lighter/cleaner background
+          const Color(0xFFF8FAFC), 
       body: Stack(
-        // Using Stack for a subtle background accent
         children: [
           Positioned(
             top: -100,
@@ -135,7 +132,6 @@ class _DashboardPageState extends State<DashboardPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- HEADER SECTION ---
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -185,7 +181,6 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                   const SizedBox(height: 40),
 
-                  // --- WELCOME TEXT ---
                   Text(
                     isEn
                         ? "How can we help you?"
@@ -199,7 +194,6 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  // --- FEATURES GRID/LIST ---
                   _buildFeatureButton(
                     context,
                     icon: LucideIcons.fileSearch,
@@ -243,7 +237,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
                   const SizedBox(height: 40),
 
-                  // --- DISCLAIMER ---
                   Center(
                     child: Container(
                       padding: const EdgeInsets.symmetric(
