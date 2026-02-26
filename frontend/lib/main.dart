@@ -28,6 +28,7 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+/*
   if (kDebugMode) {
     String host = kIsWeb ? 'localhost' : '10.0.2.2';
     await FirebaseAuth.instance.useAuthEmulator(host, 9099);
@@ -35,7 +36,7 @@ Future<void> main() async {
     FirebaseStorage.instance.useStorageEmulator(host, 9199);
     FirebaseFunctions.instance.useFunctionsEmulator(host, 5001);
     debugPrint("Running in Debug Mode: Connected to Firebase Emulators");
-  }
+  }*/
 
   runApp(const PocketLawyerApp());
 }

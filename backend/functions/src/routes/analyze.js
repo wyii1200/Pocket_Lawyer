@@ -177,11 +177,13 @@ function parseGeminiResponse(raw, references) {
 
 
 
-const admin = require("firebase-admin");
+
 const { FieldValue } = require("firebase-admin/firestore"); // ADD THIS
 const { db } = require("../config/firebase");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { defineSecret } = require("firebase-functions/params");
 
+const geminiKey = defineSecret("GEMINI_API_KEY");
 
 exports.analyzeContract = onCall(
   { region: "us-central1" },

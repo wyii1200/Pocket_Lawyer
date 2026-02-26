@@ -4,11 +4,12 @@
  * such as document upload, contract analysis, legal chat, and letter generation.
  */
 
-require("dotenv").config();
+
+//require("dotenv").config();
 
 
 const {db} = require("./config/firebase");
-//const functions = require("firebase-functions");
+
 const { onRequest } = require("firebase-functions/v2/https");
 // Import your route handlers - they already export the functions properly
 const { uploadDocument } = require("./routes/upload");
@@ -22,9 +23,9 @@ exports.analyzeContract = analyzeContract;
 exports.legalChat = legalChat;
 exports.generateLetter = generateLetter;
 
-exports.testDB = onRequest(
+/*exports.testDB = onRequest(
   { region: "us-central1" },
   (req, res) => {
     res.send("Firestore working - emulator is responding!");
   }
-);
+);*/

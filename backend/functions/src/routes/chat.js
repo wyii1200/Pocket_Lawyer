@@ -7,6 +7,9 @@
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { generateAIResponse } = require("../services/geminiService");
+const { defineSecret } = require("firebase-functions/params");
+
+const geminiKey = defineSecret("GEMINI_API_KEY");
 
 exports.legalChat = onCall(
   { region: "us-central1" },

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/history_service.dart';
+import 'package:image_picker/image_picker.dart';
 
 class DocumentAnalysisPage extends StatefulWidget {
   const DocumentAnalysisPage({super.key});
@@ -108,14 +109,16 @@ class _DocumentAnalysisPageState extends State<DocumentAnalysisPage> {
     }
 
     Future<void> _scanCameraAndAnalyze() async {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        withData: true,
+      final picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
       );
 
-      if (result != null && result.files.single.bytes != null) {
-        final fileName = result.files.single.name; // GET FILE NAME HERE
-        await _sendBytesToBackend(result.files.single.bytes!, 'jpg', fileName);
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        final fileName = image.name.isNotEmpty ? image.name : 'scan_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        await _sendBytesToBackend(bytes, 'jpg', fileName);
       }
     }
   @override
