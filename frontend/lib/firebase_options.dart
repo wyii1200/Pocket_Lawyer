@@ -71,4 +71,5 @@ class DefaultFirebaseOptions {
     authDomain: 'pocketlawyer-ai-2025.firebaseapp.com',
     storageBucket: 'pocketlawyer-ai-2025.firebasestorage.app',
   );
+
 }
