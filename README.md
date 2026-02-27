@@ -87,17 +87,17 @@ Many users face difficulty understanding legal documents or generating legal let
 
 ## Future Roadmap
 
-Short-Term (0-6 Months)
+**Short-Term (0-6 Months)**
 1. Strengthening Accuracy, Trust & Beta Validation
    - Improve Legal Accuracy and Reliability
 
-Medium-Term (6-12 Months)
+**Medium-Term (6-12 Months)**
 1. Collaborate with Universities and Legal Aid Clinics
    - Partner with 2-3 university legal aid clinics
 2. NGO & Community Organization Integration
    - Collaborate with consumer rights NGOs, tenant associations and migrant support groups.
   
-Long-Term (12+ Months)
+**Long-Term (12+ Months)**
 1. Government Pilot Program (Limited Scope)
    - Propose pilot collaboration with one municipal council or consumer complaint office.
 2. Sustainable Growth Model
@@ -107,6 +107,20 @@ Long-Term (12+ Months)
 
 ## Impact
 
+**1. Accessible Legal Guidance**
+The system replaces the need to browse static, complex government websites with a conversational interface where users get legally-referenced replies in plain English within minutes.
+
+**2. Empowered Action through Documentation**
+Unlike generic templates, the AI drafts customized, professionally formatted Letters of Demand and formal notices tailored to a user’s specific dispute.
+
+**3. Bridging the Legal Literacy Gap**
+By centralizing and simplifying scattered Malaysian laws, the solution ensures that language is no longer a barrier for the B40 community and students seeking justice.
+
+**4. Evidence-Based Trust**
+The integration of a RAG pipeline ensures that every AI response is anchored in verified Malaysian statutes, moving the user experience from "AI guessing" to grounded legal truth.
+
+**5. Immediate Crisis Support**
+The platform achieves a significant reduction in the time required to understand legal rights, enabling users to move from confusion to clear action steps in under two minutes.
 
 ## License
 
