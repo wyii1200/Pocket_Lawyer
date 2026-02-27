@@ -87,6 +87,23 @@ Many users face difficulty understanding legal documents or generating legal let
 
 ## Future Roadmap
 
+Short-Term (0-6 Months)
+1. Strengthening Accuracy, Trust & Beta Validation
+   - Improve Legal Accuracy and Reliability
+
+Medium-Term (6-12 Months)
+1. Collaborate with Universities and Legal Aid Clinics
+   - Partner with 2-3 university legal aid clinics
+2. NGO & Community Organization Integration
+   - Collaborate with consumer rights NGOs, tenant associations and migrant support groups.
+  
+Long-Term (12+ Months)
+1. Government Pilot Program (Limited Scope)
+   - Propose pilot collaboration with one municipal council or consumer complaint office.
+2. Sustainable Growth Model
+   - Introduce a freemium structure (basic chat free, advanced contract review premium)
+3. Selective Regional Adaptation (optional)
+   - Adapt legal database for one neighboring country (e.g., Indonesia).
 
 ## Impact
 
