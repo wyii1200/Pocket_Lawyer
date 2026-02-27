@@ -24,33 +24,33 @@ By leveraging Gemini 2.5 Flash and a RAG pipeline grounded in Malaysian statutes
 
 ## Overview of Technologies used
 **Google Technologies**
-**- Gemini 2.5 Flash:** A fast, cost-effective multimodal LLM used for legal reasoning, contract summarization, and RAG-based chat.
-**- Flutter (Dart):** The cross-platform UI framework used to build a consistent mobile experience for both Android and iOS.
-**- Cloud Firestore:** A NoSQL database that stores user data, chat history, and the curated Malaysian law snippets used for the RAG component.
-**- Firebase Cloud Functions:** A serverless backend that hosts the core logic for RAG processing, API calls, and legal context validation.
-**- Firebase Storage:** Secure object storage for user-uploaded PDFs/images and the final generated legal documents.
-**- Firebase Authentication:** Manages secure user account creation and session persistence.
+- **Gemini 2.5 Flash:** A fast, cost-effective multimodal LLM used for legal reasoning, contract summarization, and RAG-based chat.
+- **Flutter (Dart):** The cross-platform UI framework used to build a consistent mobile experience for both Android and iOS.
+- **Cloud Firestore:** A NoSQL database that stores user data, chat history, and the curated Malaysian law snippets used for the RAG component.
+- **Firebase Cloud Functions:** A serverless backend that hosts the core logic for RAG processing, API calls, and legal context validation.
+- **Firebase Storage:** Secure object storage for user-uploaded PDFs/images and the final generated legal documents.
+- **Firebase Authentication:** Manages secure user account creation and session persistence.
 
 **Supporting Tools & Libraries**
-**- pdf-parse / pdfkit:** Node.js libraries used within Cloud Functions to extract text from user-uploaded PDFs and generate formatted legal letters as PDFs.
-**- GitHub:** Utilized for version control, branch management, and collaborative code reviews.
-**- Postman:** Employed for rigorous testing of backend API endpoints.
-**- Android Emulator:** Used for local environment testing of the mobile application.
+- **pdf-parse / pdfkit:** Node.js libraries used within Cloud Functions to extract text from user-uploaded PDFs and generate formatted legal letters as PDFs.
+- **GitHub:** Utilized for version control, branch management, and collaborative code reviews.
+- **Postman:** Employed for rigorous testing of backend API endpoints.
+- **Android Emulator:** Used for local environment testing of the mobile application.
 
 ## Implementation Details & Innovation
 **System Architecture**
-**- Frontend (Flutter):** Cross-platform mobile UI for user interactions, document uploads, and displaying AI guidance.
-**- Backend (Cloud Functions):** Secure serverless layer that orchestrates RAG logic and manages Gemini API calls.
-**- AI Engine (Gemini 2.5 Flash + RAG):** Multimodal LLM providing legal reasoning grounded in Malaysian statutes to prevent hallucinations.
-**- Data Storage (Firestore & Storage):** Firestore handles the RAG knowledge base and user history, while Storage hosts PDFs and generated letters.
-**- Auth & Analytics (Firebase):** Manages secure user sessions and tracks usage metrics to measure social impact.
+- **Frontend (Flutter):** Cross-platform mobile UI for user interactions, document uploads, and displaying AI guidance.
+- **Backend (Cloud Functions):** Secure serverless layer that orchestrates RAG logic and manages Gemini API calls.
+- **AI Engine (Gemini 2.5 Flash + RAG):** Multimodal LLM providing legal reasoning grounded in Malaysian statutes to prevent hallucinations.
+- **Data Storage (Firestore & Storage):** Firestore handles the RAG knowledge base and user history, while Storage hosts PDFs and generated letters.
+- **Auth & Analytics (Firebase):** Manages secure user sessions and tracks usage metrics to measure social impact.
 
 **Workflow**
-1. User Interaction: Users access the dashboard, upload documents, or initiate chat.
-2. Backend Processing: Uploaded documents are sent to Firebase Functions; Gemini 2.5 Flash processes data.
-3. AI Analysis & Chat: Gemini provide document insights and chat responses
-4. Document Generation: Users fill form-based inputs; generated letters are stored and displayed
-5. Results View: Users can download or view documents with analysis summaries.
+1. **User Interaction:** Users access the dashboard, upload documents, or initiate chat.
+2. **Backend Processing:** Uploaded documents are sent to Firebase Functions; Gemini 2.5 Flash processes data.
+3. **AI Analysis & Chat:** Gemini provide document insights and chat responses
+4. **Document Generation:** Users fill form-based inputs; generated letters are stored and displayed
+5. **Results View:** Users can download or view documents with analysis summaries.
 
 
 ## How to Run
@@ -121,19 +121,19 @@ By leveraging Gemini 2.5 Flash and a RAG pipeline grounded in Malaysian statutes
 
 
 ## Impact
-**1. Accessible Legal Guidance**
+**1. Accessible Legal Guidance:**
 The system replaces the need to browse static, complex government websites with a conversational interface where users get legally-referenced replies in plain English within minutes.
 
-**2. Empowered Action through Documentation**
+**2. Empowered Action through Documentation:**
 Unlike generic templates, the AI drafts customized, professionally formatted Letters of Demand and formal notices tailored to a user’s specific dispute.
 
-**3. Bridging the Legal Literacy Gap**
+**3. Bridging the Legal Literacy Gap:**
 By centralizing and simplifying scattered Malaysian laws, the solution ensures that language is no longer a barrier for the B40 community and students seeking justice.
 
-**4. Evidence-Based Trust**
+**4. Evidence-Based Trust:**
 The integration of a RAG pipeline ensures that every AI response is anchored in verified Malaysian statutes, moving the user experience from "AI guessing" to grounded legal truth.
 
-**5. Immediate Crisis Support**
+**5. Immediate Crisis Support:**
 The platform achieves a significant reduction in the time required to understand legal rights, enabling users to move from confusion to clear action steps in under two minutes.
 
 
